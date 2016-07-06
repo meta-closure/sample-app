@@ -76,7 +76,7 @@ href: https://sample-app
 pathStart: /v1
     
 links:
-    - title: POST /users
+    - title: CREATE user
       description: create user
       rel: create
       href: /users
@@ -96,7 +96,7 @@ links:
               
       targetSchema:
           $ref: '#/definitions/user'
-    - title: PUT /users/:user_id
+    - title: PUT user
       description: update user
       rel: update
       href: /users/:user_id
@@ -113,7 +113,7 @@ links:
               - password
       targetSchema:
           $ref: '#/definitions/user'
-    - title: DELETE /users/:user_id
+    - title: DELETE user
       description: delete user
       rel: delete
       href: /user/:user_id
@@ -128,7 +128,7 @@ links:
       targetSchema:
           $ref: '#/definitions/ok'
 
-    - title: GET /users/:user_id
+    - title: GET user
       description: get user data
       rel: self
       href: /user/:user_id
@@ -136,7 +136,7 @@ links:
       targetSchema:
           $ref: '#/definitions/user'
 
-    - title: POST /session
+    - title: create session
       description: create session
       rel: create
       href: /session
@@ -154,7 +154,7 @@ links:
       targetSchema:
           $ref: '#/definitions/ok'
 
-    - title: DELETE /session
+    - title: DELETE session
       description: delete session
       rel: delete
       href: /session
@@ -173,7 +173,7 @@ links:
           $ref: '#/definitions/ok'
 
                       
-    - title: POST /posts
+    - title: POST post
       description: create post
       rel: create
       href: /posts
@@ -191,7 +191,7 @@ links:
       targetSchema:
           $ref: '#/definitions/post'
 
-    - title: DELETE /posts/:post_id
+    - title: DELETE post by post_id
       description: delete post
       rel: delete
       href: /posts/:post_id
@@ -200,7 +200,7 @@ links:
           $ref: '#/definitions/ok'
 
 
-    - title: PUT /posts/:post_id
+    - title: PUT post by post_id
       description: update post
       rel: put
       href: /posts/:post_id
@@ -218,7 +218,7 @@ links:
       targetSchema:
           $ref: '#/definitions/post'
 
-    - title: GET /posts
+    - title: GET posts
       description: get post index
       rel: self
       href: /posts
@@ -231,7 +231,7 @@ links:
               posts:
                   $ref: '#/definitions/posts'
 
-    - title: GET /posts/:post_id
+    - title: GET post by post_id
       description: get post_id post
       rel: self
       href: /posts/:post_id
