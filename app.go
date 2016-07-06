@@ -52,11 +52,11 @@ type PostHock struct {
 }
 
 func (p PostHock) PostHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := ParseJWT("test")
-	if err != nil {
-	}
+	//id, err := ParseJWT("test")
+	//if err != nil {
+	//}
 	var payload map[string]string
-	payload["user_id"] = string(id)
+	//payload["user_id"] = string(id)
 	p.handler(w, r, payload)
 }
 
@@ -86,7 +86,6 @@ func NoCheck(map[string]string) bool {
 
 func (s *Server) SetupRoutes() {
 	r := s.Router
-	r.HandleFunc("/test", GetHock{handler: model.Tes, validater: NoCheck}.GetHandler)
 	r.HandleFunc("/posts", GetHock{handler: model.GetPostsHandler, validater: NoCheck}.GetHandler).Methods("GET")
 	r.HandleFunc("/posts/{post_id}", GetHock{handler: model.GetPostHandler, validater: NoCheck}.GetHandler).Methods("GET")
 	r.HandleFunc("/posts", PostHock{handler: model.PostPostHandler}.PostHandler).Methods("POST")
