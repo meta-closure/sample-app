@@ -5,16 +5,14 @@ import (
 	"net/http"
 	"time"
 
+	"./auth"
 	"./model"
 	"github.com/Sirupsen/logrus"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
 )
 
 var (
-	log         = initLog()
-	jwtoken     = jwt.New(jwt.SigningMethodHS256)
-	encrypt_key = "secret"
+	log = initLog()
 )
 
 func initLog() *logrus.Logger {
@@ -31,40 +29,19 @@ type GetHock struct {
 	validater func(map[string]string) bool
 }
 
-func Auth(r *http.Request) (int, error) {
+func (g GetHock) GetHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
 	if token == "" {
 		fmt.Printf("null token")
 	}
-	pt, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
-		return []byte(encrypt_key), nil
-	})
-	if err != nil || pt.Valid != true {
-		fmt.Printf("auth error")
-	}
-	fmt.Printf("%+v", pt.Claims)
-	return 1, nil
-
-}
-
-func CreateToken(i int, b bool) (string, error) {
-	jwtoken.Claims["user_id"] = i
-
-	t, err := jwtoken.SignedString([]byte(encrypt_key))
-	if err != nil {
-		fmt.Println(err)
-	}
-	return t, nil
-}
-
-func (g GetHock) GetHandler(w http.ResponseWriter, r *http.Request) {
-	_, err := Auth(r)
+	id, err := auth.Auth(token)
 	if err != nil {
 	}
 	payload := mux.Vars(r)
 	ok := g.validater(payload)
 	if ok != true {
 	}
+	payload["auth_user_id"] = string(id)
 	g.handler(w, r, payload)
 }
 
@@ -73,10 +50,15 @@ type PostHock struct {
 }
 
 func (p PostHock) PostHandler(w http.ResponseWriter, r *http.Request) {
-	_, err := Auth(r)
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		fmt.Printf("null token")
+	}
+	id, err := auth.Auth(token)
 	if err != nil {
 	}
 	var payload map[string]string
+	payload["auth_user_id"] = string(id)
 	p.handler(w, r, payload)
 }
 
@@ -87,7 +69,7 @@ func CreateTokenHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	t, err := CreateToken(id, false)
+	t, err := auth.CreateToken(id)
 	if err != nil {
 		return
 	}
@@ -96,33 +78,25 @@ func CreateTokenHandler(w http.ResponseWriter, r *http.Request) {
 	return
 
 }
-func Test(w http.ResponseWriter, r *http.Request) {
-	t, err := CreateToken(1, false)
-	if err != nil {
 
-	}
-	fmt.Println(t)
-	w.Header().Set("Authorization", t)
-	fmt.Printf("\n\nw : %v\n\n\n", w)
-	r.Header.Set("Authorization", t)
-	fmt.Printf("\n\nr : %v\n\n\n", r)
-	fmt.Printf(r.Header.Get("Authorization"))
-	Auth(r)
-	return
-
-}
 func DeleteTokenHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := Auth(r)
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		fmt.Printf("null token")
+	}
+	id, err := auth.Auth(token)
 	if err != nil {
 		return
 	}
-	t, err := CreateToken(id, true)
+	t, err := auth.CreateExpiredToken(id)
 	if err != nil {
 		return
 	}
 	w.Header().Set("Authorization", t)
 	return
 }
+
+func Test(w http.ResponseWriter, r *http.Request) {}
 
 func NoCheck(map[string]string) bool {
 	return true

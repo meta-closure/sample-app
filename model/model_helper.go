@@ -39,6 +39,8 @@ func (t TableMapper) Obj2Table(s string) string {
 	switch s {
 	case "Post":
 		return "posts"
+	case "User":
+		return "users"
 	default:
 		return "empty"
 	}

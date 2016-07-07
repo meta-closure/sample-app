@@ -44,24 +44,26 @@ func Result(code int) []byte {
 func ExistUser(r *http.Request) (int, error) {
 	user := &User{}
 	buf, err := ioutil.ReadAll(r.Body)
-	fmt.Printf("%v", user)
+	fmt.Printf("%v\n", user)
 	if err != nil {
 		fmt.Println(buf, err)
 	}
 	err = json.Unmarshal(buf, user)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("2", err)
 	}
 	ok, err := engine.Get(user)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("1", err)
 	}
 	if ok != true {
 	}
 	i, err := user.Id.Value()
 	if err != nil {
+		fmt.Println(err)
 	}
-	return i.(int), nil
+	s, _ := i.(int64)
+	return int(s), nil
 }
 
 func GetPostHandler(w http.ResponseWriter, r *http.Request, p map[string]string) {
