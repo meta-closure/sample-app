@@ -7,12 +7,22 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
-func main() {
-	token := jwt.New(jwt.SigningMethodHS256)
+type CustomClaim struct {
+	UserId int
+	jwt.StandardClaims
+}
 
-	token.Claims["foo"] = "bar"
-	token.Claims["ee"] = "ok"
-	fmt.Printf("token: \n%v\n", token)
+func main() {
+	c := CustomClaim{
+		1,
+		jwt.StandardClaims{
+			ExpiresAt: jwt.TimeFunc().Unix() - 10,
+			Issuer:    "test",
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, c)
+
+	fmt.Printf("token: \n%+v\n", token)
 
 	t, _ := token.SignedString([]byte("secret"))
 
@@ -21,5 +31,9 @@ func main() {
 	tk, _ := jwt.Parse(t, func(token *jwt.Token) (interface{}, error) {
 		return []byte("secret"), nil
 	})
-	
+
+	e, ok := tk.Claims.(jwt.MapClaims)
+	fmt.Println(e.Valid(), ok)
+	fmt.Printf("%+v", tk)
+
 }

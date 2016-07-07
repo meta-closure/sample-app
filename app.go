@@ -31,19 +31,40 @@ type GetHock struct {
 	validater func(map[string]string) bool
 }
 
-func ParseJWT(s string) (int, error) {
+func Auth(r *http.Request) (int, error) {
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		fmt.Printf("null token")
+	}
+	pt, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+		return []byte(encrypt_key), nil
+	})
+	if err != nil || pt.Valid != true {
+		fmt.Printf("auth error")
+	}
+	fmt.Printf("%+v", pt.Claims)
 	return 1, nil
+
+}
+
+func CreateToken(i int, b bool) (string, error) {
+	jwtoken.Claims["user_id"] = i
+
+	t, err := jwtoken.SignedString([]byte(encrypt_key))
+	if err != nil {
+		fmt.Println(err)
+	}
+	return t, nil
 }
 
 func (g GetHock) GetHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := ParseJWT("test")
+	_, err := Auth(r)
 	if err != nil {
 	}
 	payload := mux.Vars(r)
 	ok := g.validater(payload)
 	if ok != true {
 	}
-	payload["user_id"] = string(id)
 	g.handler(w, r, payload)
 }
 
@@ -52,33 +73,56 @@ type PostHock struct {
 }
 
 func (p PostHock) PostHandler(w http.ResponseWriter, r *http.Request) {
-	//id, err := ParseJWT("test")
-	//if err != nil {
-	//}
+	_, err := Auth(r)
+	if err != nil {
+	}
 	var payload map[string]string
-	//payload["user_id"] = string(id)
 	p.handler(w, r, payload)
 }
 
 func ValidPostPayload(p map[string]string) bool { return true }
 
-func CreateToken(w http.ResponseWriter, r *http.Request) {
+func CreateTokenHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := model.ExistUser(r)
 	if err != nil {
 		return
 	}
-	jwtoken.Claims["user_id"] = id
-	t, err := jwtoken.SignedString([]byte(encrypt_key))
+	t, err := CreateToken(id, false)
 	if err != nil {
-		fmt.Println(err)
+		return
 	}
 	fmt.Println(t)
 	w.Header().Set("Authorization", t)
 	return
 
 }
+func Test(w http.ResponseWriter, r *http.Request) {
+	t, err := CreateToken(1, false)
+	if err != nil {
 
-func DeleteToken(w http.ResponseWriter, r *http.Request) {}
+	}
+	fmt.Println(t)
+	w.Header().Set("Authorization", t)
+	fmt.Printf("\n\nw : %v\n\n\n", w)
+	r.Header.Set("Authorization", t)
+	fmt.Printf("\n\nr : %v\n\n\n", r)
+	fmt.Printf(r.Header.Get("Authorization"))
+	Auth(r)
+	return
+
+}
+func DeleteTokenHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := Auth(r)
+	if err != nil {
+		return
+	}
+	t, err := CreateToken(id, true)
+	if err != nil {
+		return
+	}
+	w.Header().Set("Authorization", t)
+	return
+}
 
 func NoCheck(map[string]string) bool {
 	return true
@@ -86,11 +130,12 @@ func NoCheck(map[string]string) bool {
 
 func (s *Server) SetupRoutes() {
 	r := s.Router
+	r.HandleFunc("/test", Test)
 	r.HandleFunc("/posts", GetHock{handler: model.GetPostsHandler, validater: NoCheck}.GetHandler).Methods("GET")
 	r.HandleFunc("/posts/{post_id}", GetHock{handler: model.GetPostHandler, validater: NoCheck}.GetHandler).Methods("GET")
 	r.HandleFunc("/posts", PostHock{handler: model.PostPostHandler}.PostHandler).Methods("POST")
-	r.HandleFunc("/login", CreateToken)
-	r.HandleFunc("/login", DeleteToken).Methods("DELETE")
+	r.HandleFunc("/login", CreateTokenHandler)
+	r.HandleFunc("/login", DeleteTokenHandler).Methods("DELETE")
 	r.HandleFunc("/users", model.PostUserHandler).Methods("POST")
 }
 
