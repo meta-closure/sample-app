@@ -1,12 +1,14 @@
 package app
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 
 	_ "github.com/go-sql-driver/mysql"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Ok struct {
@@ -42,4 +44,9 @@ func Error(w http.ResponseWriter, code int, s error) {
 	b, _ := json.Marshal(ok)
 	w.WriteHeader(code)
 	fmt.Fprintf(w, string(b))
+}
+
+func Pass2Hash(s string) string {
+	c, _ := bcrypt.GenerateFromPassword([]byte(s), 10)
+	return hex.EncodeToString(c[:])
 }

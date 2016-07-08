@@ -70,7 +70,7 @@ func PostUserHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		Error(w, 400, err)
 	}
-	_, err = engine.Insert(user)
+	err = user.Insert()
 	if err != nil {
 		Error(w, 400, err)
 	}
@@ -88,7 +88,7 @@ func PostPostHandler(w http.ResponseWriter, r *http.Request, p map[string]string
 	if err != nil {
 		Error(w, 400, err)
 	}
-	_, err = engine.Insert(post)
+	err = post.Insert()
 	if err != nil {
 		Error(w, 400, err)
 	}
