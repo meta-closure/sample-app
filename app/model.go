@@ -1,8 +1,9 @@
-package model
+package app
 
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/xorm"
@@ -17,14 +18,9 @@ var (
 
 type TableMapper struct{}
 
-
 type Posts struct {
 	PostList []Post        `json:"post_list"`
 	Page     dbr.NullInt64 `json:"page"`
-}
-
-type Ok struct {
-	Ok     bool `json:"ok"`
 }
 
 type Post struct {
@@ -71,6 +67,7 @@ func initDb() *xorm.Engine {
 	engine, err := xorm.NewEngine("mysql", "root:@/test")
 	if err != nil {
 		fmt.Println(err)
+		os.Exit(-1)
 	}
 	engine.SetMapper(TableMapper{})
 	return engine
@@ -92,6 +89,7 @@ func NewPost() *Post {
 func NewUser() *User {
 	return &User{}
 }
+
 func (m Post) Valid(p map[string]string) bool {
 	return true
 }

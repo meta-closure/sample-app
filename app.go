@@ -2,12 +2,10 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
-	"./auth"
-	"./model"
+	"./app"
 	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 )
@@ -35,12 +33,11 @@ type GetHock struct {
 func (g GetHock) GetHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
 	if token == "" {
-		fmt.Printf("auth token is empty\n")
-		return
+		app.Error(w, 401, ErrEmptyToken)
 	}
-	id, err := auth.Auth(token)
+	id, err := app.Auth(token)
 	if err != nil {
-		fmt.Println(err)
+		app.Error(w, 401, ErrInvalidToken)
 		return
 	}
 	payload := mux.Vars(r)
@@ -58,12 +55,12 @@ type PostHock struct {
 func (p PostHock) PostHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
 	if token == "" {
-		fmt.Println(ErrEmptyToken)
+		app.Error(w, 401, ErrEmptyToken)
 		return
 	}
-	id, err := auth.Auth(token)
+	id, err := app.Auth(token)
 	if err != nil {
-		fmt.Println(err)
+		app.Error(w, 401, ErrInvalidToken)
 		return
 	}
 	payload := map[string]string{
@@ -77,17 +74,18 @@ func ValidPostPayload(p map[string]string) bool {
 }
 
 func CreateTokenHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := model.ExistUser(r)
+	id, err := app.ExistUser(r)
 	if err != nil {
-		fmt.Println(err)
+		app.Error(w, 401, err)
 		return
 	}
-	t, err := auth.CreateToken(id)
+	t, err := app.CreateToken(id)
 	if err != nil {
-		fmt.Println(err)
+		app.Error(w, 401, err)
 		return
 	}
 	w.Header().Set("Authorization", t)
+	app.Success(w, nil)
 	return
 
 }
@@ -95,20 +93,21 @@ func CreateTokenHandler(w http.ResponseWriter, r *http.Request) {
 func DeleteTokenHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
 	if token == "" {
-		fmt.Printf("null token")
+		app.Error(w, 401, ErrEmptyToken)
 		return
 	}
-	id, err := auth.Auth(token)
+	id, err := app.Auth(token)
 	if err != nil {
-		fmt.Println(err)
+		app.Error(w, 401, ErrInvalidToken)
 		return
 	}
-	t, err := auth.CreateExpiredToken(id)
+	t, err := app.CreateExpiredToken(id)
 	if err != nil {
-		fmt.Println(err)
+		app.Error(w, 400, err)
 		return
 	}
 	w.Header().Set("Authorization", t)
+	app.Success(w, nil)
 	return
 }
 
@@ -121,12 +120,12 @@ func NoCheck(map[string]string) bool {
 func (s *Server) SetupRoutes() {
 	r := s.Router
 	r.HandleFunc("/test", Test)
-	r.HandleFunc("/posts", GetHock{handler: model.GetPostsHandler, validater: NoCheck}.GetHandler).Methods("GET")
-	r.HandleFunc("/posts/{post_id}", GetHock{handler: model.GetPostHandler, validater: NoCheck}.GetHandler).Methods("GET")
-	r.HandleFunc("/posts", PostHock{handler: model.PostPostHandler}.PostHandler).Methods("POST")
+	r.HandleFunc("/posts", GetHock{handler: app.GetPostsHandler, validater: NoCheck}.GetHandler).Methods("GET")
+	r.HandleFunc("/posts/{post_id}", GetHock{handler: app.GetPostHandler, validater: NoCheck}.GetHandler).Methods("GET")
+	r.HandleFunc("/posts", PostHock{handler: app.PostPostHandler}.PostHandler).Methods("POST")
 	r.HandleFunc("/login", CreateTokenHandler).Methods("POST")
 	r.HandleFunc("/login", DeleteTokenHandler).Methods("DELETE")
-	r.HandleFunc("/users", model.PostUserHandler).Methods("POST")
+	r.HandleFunc("/users", app.PostUserHandler).Methods("POST")
 }
 
 type Server struct {
