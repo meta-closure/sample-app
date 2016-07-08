@@ -17,22 +17,32 @@ var (
 
 type TableMapper struct{}
 
+
+type Posts struct {
+	PostList []Post        `json:"post_list"`
+	Page     dbr.NullInt64 `json:"page"`
+}
+
+type Ok struct {
+	Ok     bool `json:"ok"`
+}
+
 type Post struct {
-	Id        dbr.NullInt64  `xorm:"id",json:"post_id,omitempty"`
-	CreatedAt dbr.NullInt64  `xorm:"created_at",json:"created_at,omitempty"`
-	UpdatedAt dbr.NullInt64  `xorm:"updated_at",json:"updated_at,omitempty"`
-	Title     dbr.NullString `xorm:"title",json:"title",json:"title"`
-	Body      dbr.NullString `xorm:"body",json:"body",json:"body"`
-	UserId    dbr.NullInt64  `xorm:"user_id",json:"user_id"`
+	Id        dbr.NullInt64  `xorm:"id" json:"post_id,omitempty"`
+	CreatedAt dbr.NullInt64  `xorm:"created_at" json:"created_at omitempty"`
+	UpdatedAt dbr.NullInt64  `xorm:"updated_at" json:"updated_at omitempty"`
+	Title     dbr.NullString `xorm:"title" json:"title" json:"title"`
+	Body      dbr.NullString `xorm:"body" json:"body" json:"body"`
+	UserId    dbr.NullInt64  `xorm:"user_id" json:"user_id"`
 }
 
 type User struct {
-	Id              dbr.NullInt64  `xorm:"id",json:"user_id,omitempty"`
-	CreatedAt       dbr.NullInt64  `xorm:"created_at",json:"created_at,omitempty"`
-	UpdatedAt       dbr.NullInt64  `xorm:"updated_at",json:"updated_at,omitempty"`
-	ScreenName      dbr.NullString `xorm:"screen_name",json:"screen_name"`
-	CryptedPassword dbr.NullString `xorm:"crypted_password"`
-	Password        dbr.NullString `json:"password`
+	Id              dbr.NullInt64  `xorm:"id" json:"user_id,omitempty"`
+	CreatedAt       dbr.NullInt64  `xorm:"created_at" json:"created_at omitempty"`
+	UpdatedAt       dbr.NullInt64  `xorm:"updated_at" json:"updated_at omitempty"`
+	ScreenName      dbr.NullString `xorm:"screen_name" json:"screen_name"`
+	CryptedPassword dbr.NullString `xorm:"crypted_password" json:"crypted_password"`
+	Password        dbr.NullString `xorm:"-" json:"password"`
 }
 
 func (t TableMapper) Obj2Table(s string) string {
@@ -64,16 +74,6 @@ func initDb() *xorm.Engine {
 	}
 	engine.SetMapper(TableMapper{})
 	return engine
-}
-
-type Posts struct {
-	PostList []Post        `json:"post_list"`
-	Page     dbr.NullInt64 `json:"page"`
-}
-
-type Ok struct {
-	Ok     bool `json:"ok"`
-	Status int  `json:"status"`
 }
 
 func Interval(l int) (int, int) {

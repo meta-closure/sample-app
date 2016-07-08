@@ -18,7 +18,6 @@ var (
 )
 
 func Query(r *http.Request) (map[string][]string, error) {
-
 	u, err := url.Parse(r.RequestURI)
 	if err != nil {
 		return nil, err
@@ -31,7 +30,7 @@ func Query(r *http.Request) (map[string][]string, error) {
 }
 
 func Result(code int) []byte {
-	ok := &Ok{Status: code}
+	ok := &Ok{}
 	if code == 200 {
 		ok.Ok = true
 	} else {
@@ -44,17 +43,17 @@ func Result(code int) []byte {
 func ExistUser(r *http.Request) (int, error) {
 	user := &User{}
 	buf, err := ioutil.ReadAll(r.Body)
-	fmt.Printf("%v\n", user)
 	if err != nil {
 		fmt.Println(buf, err)
 	}
 	err = json.Unmarshal(buf, user)
 	if err != nil {
-		fmt.Println("2", err)
+		fmt.Println(err)
 	}
 	ok, err := engine.Get(user)
 	if err != nil {
-		fmt.Println("1", err)
+		fmt.Println(err)
+		fmt.Println(user)
 	}
 	if ok != true {
 	}
