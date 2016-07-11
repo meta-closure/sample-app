@@ -8,6 +8,7 @@ import (
 
 	"./app"
 	"github.com/Sirupsen/logrus"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
@@ -133,8 +134,23 @@ type Server struct {
 	*mux.Router
 }
 
+func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	origin := req.Header.Get("Origin")
+	if origin != "" {
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Authorization")
+	}
+	if req.Method == "OPTION" {
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	s.Router.ServeHTTP(w, req)
+}
+
 func Run(l string) error {
-	return http.ListenAndServe(l, New())
+	r := New()
+	return http.ListenAndServe(l, handlers.CORS()(r))
 }
 
 func New() *Server {
