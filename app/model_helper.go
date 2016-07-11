@@ -11,9 +11,10 @@ import (
 )
 
 var (
-	ErrTypeInvalid = errors.New("type error")
-	ErrInvalid     = errors.New("invalid")
-	ErrEmpty       = errors.New("empty")
+	ErrInvalidPassword = errors.New("invalid password")
+	ErrTypeInvalid     = errors.New("type error")
+	ErrInvalid         = errors.New("parameter invalid")
+	ErrEmpty           = errors.New("record is empty")
 )
 
 type TableMapper struct{}
@@ -25,8 +26,8 @@ type Posts struct {
 
 type Post struct {
 	Id        dbr.NullInt64  `xorm:"id" json:"post_id,omitempty"`
-	CreatedAt dbr.NullInt64  `xorm:"created_at" json:"created_at omitempty"`
-	UpdatedAt dbr.NullInt64  `xorm:"updated_at" json:"updated_at omitempty"`
+	CreatedAt dbr.NullTime   `xorm:"created_at" json:"created_at omitempty"`
+	UpdatedAt dbr.NullTime   `xorm:"updated_at" json:"updated_at omitempty"`
 	Title     dbr.NullString `xorm:"title" json:"title" json:"title"`
 	Body      dbr.NullString `xorm:"body" json:"body" json:"body"`
 	UserId    dbr.NullInt64  `xorm:"user_id" json:"user_id"`
@@ -34,8 +35,8 @@ type Post struct {
 
 type User struct {
 	Id              dbr.NullInt64  `xorm:"id" json:"user_id,omitempty"`
-	CreatedAt       dbr.NullInt64  `xorm:"created_at" json:"created_at omitempty"`
-	UpdatedAt       dbr.NullInt64  `xorm:"updated_at" json:"updated_at omitempty"`
+	CreatedAt       dbr.NullTime   `xorm:"created_at" json:"created_at omitempty"`
+	UpdatedAt       dbr.NullTime   `xorm:"updated_at" json:"updated_at omitempty"`
 	ScreenName      dbr.NullString `xorm:"screen_name" json:"screen_name"`
 	CryptedPassword dbr.NullString `xorm:"crypted_password" json:"crypted_password"`
 	Password        dbr.NullString `xorm:"-" json:"password"`
@@ -73,13 +74,27 @@ func initDb() *xorm.Engine {
 	return engine
 }
 
-func Interval(l int) (int, int) {
-	if l < 0 {
-		l = 1
+func (u *User) Pass2Hash() error {
+	p, err := u.Password.Value()
+	if err != nil || p == nil {
+		return ErrInvalid
 	}
-	i := 10*(l) - 9
-	j := 10*(l+1) - 10
-	return i, j
+	ps, _ := p.(string)
+	u.CryptedPassword.Scan(Pass2Hash(ps))
+	fmt.Printf(Pass2Hash(ps))
+	return nil
+}
+
+func (u *User) ComparePassword(p string) error {
+	h, err := u.CryptedPassword.Value()
+	if err != nil || h == nil {
+		return ErrInvalid
+	}
+	hp, _ := h.(string)
+	if Pass2Hash(p) != hp {
+		return ErrInvalidPassword
+	}
+	return nil
 }
 
 func (m Post) Valid(p map[string]string) bool {

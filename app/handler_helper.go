@@ -7,13 +7,14 @@ import (
 	"net/http"
 	"net/url"
 
+	"golang.org/x/crypto/scrypt"
+
 	_ "github.com/go-sql-driver/mysql"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type Ok struct {
-	Ok      bool  `json:"ok"`
-	Message error `json:"message`
+	Ok      bool   `json:"ok"`
+	Message string `json:"message`
 }
 
 func Query(r *http.Request) (map[string][]string, error) {
@@ -28,25 +29,34 @@ func Query(r *http.Request) (map[string][]string, error) {
 	return j, nil
 }
 
-func Success(w http.ResponseWriter, b []byte) {
+func Success(w *http.ResponseWriter, b []byte) {
 	if b == nil {
 		ok := Ok{Ok: true}
 		b, _ = json.Marshal(ok)
 	}
-	w.WriteHeader(200)
-	fmt.Fprintf(w, string(b))
+	(*w).WriteHeader(200)
+	fmt.Fprintf(*w, string(b))
 }
 
-func Error(w http.ResponseWriter, code int, s error) {
+func Error(w *http.ResponseWriter, code int, err error) {
 	ok := Ok{Ok: false,
-		Message: s,
+		Message: fmt.Sprint(err),
 	}
 	b, _ := json.Marshal(ok)
-	w.WriteHeader(code)
-	fmt.Fprintf(w, string(b))
+	(*w).WriteHeader(code)
+	fmt.Fprintf(*w, string(b))
 }
 
 func Pass2Hash(s string) string {
-	c, _ := bcrypt.GenerateFromPassword([]byte(s), 10)
+	c, _ := scrypt.Key([]byte(s), []byte("password"), 16384, 8, 1, 32)
 	return hex.EncodeToString(c[:])
+}
+
+func Interval(l int) (int, int) {
+	if l < 0 {
+		l = 1
+	}
+	i := 10*(l) - 9
+	j := 10*(l+1) - 10
+	return i, j
 }

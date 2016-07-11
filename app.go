@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -33,11 +34,12 @@ type GetHock struct {
 func (g GetHock) GetHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
 	if token == "" {
-		app.Error(w, 401, ErrEmptyToken)
+		app.Error(&w, 401, ErrEmptyToken)
+		return
 	}
 	id, err := app.Auth(token)
 	if err != nil {
-		app.Error(w, 401, ErrInvalidToken)
+		app.Error(&w, 401, ErrInvalidToken)
 		return
 	}
 	payload := mux.Vars(r)
@@ -55,12 +57,12 @@ type PostHock struct {
 func (p PostHock) PostHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
 	if token == "" {
-		app.Error(w, 401, ErrEmptyToken)
+		app.Error(&w, 401, ErrEmptyToken)
 		return
 	}
 	id, err := app.Auth(token)
 	if err != nil {
-		app.Error(w, 401, ErrInvalidToken)
+		app.Error(&w, 401, ErrInvalidToken)
 		return
 	}
 	payload := map[string]string{
@@ -76,38 +78,37 @@ func ValidPostPayload(p map[string]string) bool {
 func CreateTokenHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.ExistUser(r)
 	if err != nil {
-		app.Error(w, 401, err)
+		fmt.Println(err)
+		app.Error(&w, 401, err)
 		return
 	}
 	t, err := app.CreateToken(id)
 	if err != nil {
-		app.Error(w, 401, err)
+		app.Error(&w, 401, err)
 		return
 	}
 	w.Header().Set("Authorization", t)
-	app.Success(w, nil)
-	return
-
+	app.Success(&w, nil)
 }
 
 func DeleteTokenHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
 	if token == "" {
-		app.Error(w, 401, ErrEmptyToken)
+		app.Error(&w, 401, ErrEmptyToken)
 		return
 	}
 	id, err := app.Auth(token)
 	if err != nil {
-		app.Error(w, 401, ErrInvalidToken)
+		app.Error(&w, 401, ErrInvalidToken)
 		return
 	}
 	t, err := app.CreateExpiredToken(id)
 	if err != nil {
-		app.Error(w, 400, err)
+		app.Error(&w, 400, err)
 		return
 	}
 	w.Header().Set("Authorization", t)
-	app.Success(w, nil)
+	app.Success(&w, nil)
 	return
 }
 

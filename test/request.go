@@ -24,8 +24,8 @@ type User struct {
 	CreatedAt       dbr.NullInt64  `xorm:"created_at" json:"created_at,omitempty"`
 	UpdatedAt       dbr.NullInt64  `xorm:"updated_at" json:"updated_at,omitempty"`
 	ScreenName      dbr.NullString `xorm:"screen_name" json:"screen_name"`
-	CryptedPassword dbr.NullString `xorm:"crypted_password" json:"crypted_password"`
-	Password        dbr.NullString `json:"password"`
+	CryptedPassword dbr.NullString `xorm:"crypted_password"`
+	Password        dbr.NullString `xorm:"-" json:"password"`
 }
 
 func (a Auth) Request(method string, path string, p map[string]interface{}) {
@@ -54,16 +54,18 @@ func (a Auth) Request(method string, path string, p map[string]interface{}) {
 	if err != nil {
 		fmt.Println(err)
 	}
+	_ = body
 	fmt.Println(resp.Header.Get("Authorization"))
-	fmt.Printf("%s", body)
+	fmt.Printf("\n%s\n", body)
+	//fmt.Printf("\n%+v\n", resp.Header)
 }
 
 func (a *Auth) Login(id int, pass string, create bool) error {
 	client := &http.Client{}
 	url := root + "/login"
 	p := map[string]interface{}{
-		"user_id":          id,
-		"crypted_password": pass,
+		"user_id":  id,
+		"password": pass,
 	}
 
 	b, err := json.Marshal(p)
@@ -89,6 +91,8 @@ func (a *Auth) Login(id int, pass string, create bool) error {
 		fmt.Println(err)
 	}
 	token := resp.Header.Get("Authorization")
+	x, _ := ioutil.ReadAll(resp.Body)
+	fmt.Printf("%s\n", x)
 	if token != "" {
 		a.Token = token
 		return nil
@@ -99,15 +103,19 @@ func (a *Auth) Login(id int, pass string, create bool) error {
 
 func main() {
 	a := &Auth{}
-	err := a.Login(1, "test", true)
+	err := a.Login(3, "test", true)
 	fmt.Println(a.Token)
 	if err != nil {
 		fmt.Println(err)
 	}
-	post := map[string]interface{}{
-		"title": "fuck off",
-		"body":  "off",
-	}
+	//post := map[string]interface{}{
+	//	"title": "fuck off",
+	//	"body":  "off",
+	//}
 
-	a.Request("GET", "/posts", post)
+	//user := map[string]interface{}{
+	//	"password": "test",
+	//}
+
+	a.Request("GET", "/posts", nil)
 }
