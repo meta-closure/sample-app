@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/xorm"
@@ -97,9 +98,122 @@ func (u *User) ComparePassword(p string) error {
 	return nil
 }
 
-func (m Post) Valid(p map[string]string) bool {
-	return true
+func (m Post) Valid(p map[string]string) error {
+
+	title, err := m.Title.Value()
+	if err != nil || title == nil {
+		return ErrInvalid
+	} else {
+		ttitle, ok := title.(string)
+		if ok != true {
+			return ErrInvalid
+		}
+		if len(ttitle) > 255 {
+			return errors.New("invalid title too long")
+		}
+	}
+
+	body, err := m.Body.Value()
+	if err != nil || body == nil {
+		return ErrInvalid
+	} else {
+		tbody, ok := body.(string)
+		if ok != true {
+			return ErrInvalid
+		}
+		if len(tbody) > 20000 {
+			return errors.New("invalid body too long")
+		}
+	}
+
+	createdat, err := m.CreatedAt.Value()
+	if err != nil || createdat == nil {
+		return ErrInvalid
+	} else {
+		tcreatedat, ok := createdat.(string)
+		if ok != true {
+			return ErrInvalid
+		}
+		ok, err := regexp.MatchString("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", tcreatedat)
+		if err != nil || ok != true {
+			return errors.New("invalid created_at pattern")
+		}
+	}
+
+	updatedat, err := m.UpdatedAt.Value()
+	if err != nil || createdat == nil {
+		return ErrInvalid
+	} else {
+		tupdatedat, ok := updatedat.(string)
+		if ok != true {
+			return ErrInvalid
+		}
+		ok, err := regexp.MatchString("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", tupdatedat)
+		if err != nil || ok != true {
+			return errors.New("invalid updated_at pattern")
+		}
+	}
+	return nil
 }
-func (m User) Valid(p map[string]string) bool {
-	return true
+func (m User) Valid(p map[string]string) error {
+	screenname, err := m.ScreenName.Value()
+	if err != nil || screenname == nil {
+		return ErrInvalid
+	} else {
+		tscreenname, ok := screenname.(string)
+		if ok != true {
+			return ErrInvalid
+		}
+		if len(tscreenname) > 255 {
+			return errors.New("invalid tscreenname too long")
+		}
+	}
+	password, err := m.Password.Value()
+	if err != nil || password == nil {
+		return ErrInvalid
+	} else {
+		tpassword, ok := password.(string)
+		if ok != true {
+			return ErrInvalid
+		}
+		if len(tpassword) < 8 {
+			return errors.New("invalid password too short")
+		}
+		if len(tpassword) > 255 {
+			return errors.New("invalid password too long")
+		}
+		ok, err := regexp.MatchString("^(?=.*?[a-z])(?=.*?[A-Z])(?=.*?\\d)[a-zA-Z\\d]*$", tpassword)
+		if err != nil || ok != true {
+			return errors.New("invalid password pattern")
+		}
+	}
+
+	createdat, err := m.CreatedAt.Value()
+	if err != nil || createdat == nil {
+		return ErrInvalid
+	} else {
+		tcreatedat, ok := createdat.(string)
+		if ok != true {
+			return ErrInvalid
+		}
+		ok, err := regexp.MatchString("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", tcreatedat)
+		if err != nil || ok != true {
+			return errors.New("invalid created_at pattern")
+		}
+	}
+
+	updatedat, err := m.UpdatedAt.Value()
+	if err != nil || createdat == nil {
+		return ErrInvalid
+	} else {
+		tupdatedat, ok := updatedat.(string)
+		if ok != true {
+			return ErrInvalid
+		}
+		ok, err := regexp.MatchString("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", tupdatedat)
+		if err != nil || ok != true {
+			return errors.New("invalid updated_at pattern")
+		}
+	}
+	return nil
 }
