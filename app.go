@@ -8,7 +8,6 @@ import (
 
 	"./app"
 	"github.com/Sirupsen/logrus"
-	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
@@ -76,6 +75,14 @@ func ValidPostPayload(p map[string]string) bool {
 	return true
 }
 
+type DeleteHock struct {
+	handler func(http.ResponseWriter, *http.Request, map[string]string)
+}
+
+type PutHock struct {
+	handler func(http.ResponseWriter, *http.Request, map[string]string)
+}
+
 func CreateTokenHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.ExistUser(r)
 	if err != nil {
@@ -88,29 +95,7 @@ func CreateTokenHandler(w http.ResponseWriter, r *http.Request) {
 		app.Error(&w, 401, err)
 		return
 	}
-	w.Header().Set("Authorization", t)
-	app.Success(&w, nil)
-}
-
-func DeleteTokenHandler(w http.ResponseWriter, r *http.Request) {
-	token := r.Header.Get("Authorization")
-	if token == "" {
-		app.Error(&w, 401, ErrEmptyToken)
-		return
-	}
-	id, err := app.Auth(token)
-	if err != nil {
-		app.Error(&w, 401, ErrInvalidToken)
-		return
-	}
-	t, err := app.CreateExpiredToken(id)
-	if err != nil {
-		app.Error(&w, 400, err)
-		return
-	}
-	w.Header().Set("Authorization", t)
-	app.Success(&w, nil)
-	return
+	app.LoginSuccess(&w, t)
 }
 
 func Test(w http.ResponseWriter, r *http.Request) {}
@@ -126,7 +111,6 @@ func (s *Server) SetupRoutes() {
 	r.HandleFunc("/posts/{post_id}", GetHock{handler: app.GetPostHandler, validater: NoCheck}.GetHandler).Methods("GET")
 	r.HandleFunc("/posts", PostHock{handler: app.PostPostHandler}.PostHandler).Methods("POST")
 	r.HandleFunc("/login", CreateTokenHandler).Methods("POST")
-	r.HandleFunc("/login", DeleteTokenHandler).Methods("DELETE")
 	r.HandleFunc("/users", app.PostUserHandler).Methods("POST")
 }
 
@@ -150,7 +134,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 func Run(l string) error {
 	r := New()
-	return http.ListenAndServe(l, handlers.CORS()(r))
+	return http.ListenAndServe(l, r)
 }
 
 func New() *Server {

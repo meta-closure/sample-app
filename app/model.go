@@ -1,9 +1,6 @@
 package app
 
 import (
-	"encoding/json"
-	"io/ioutil"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -13,40 +10,6 @@ import (
 var (
 	engine = initDb()
 )
-
-func ExistUser(r *http.Request) (int, error) {
-	user := &User{}
-	buf, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return 0, err
-	}
-	err = json.Unmarshal(buf, user)
-	if err != nil {
-		return 0, err
-	}
-	p, err := user.Password.Value()
-	if err != nil || p == nil {
-		return 0, ErrInvalid
-	}
-	pb, _ := p.(string)
-	ok, err := engine.Get(user)
-	if err != nil {
-		return 0, err
-	}
-	if ok != true {
-		return 0, ErrEmpty
-	}
-	err = user.ComparePassword(pb)
-	if err != nil {
-		return 0, err
-	}
-	i, err := user.Id.Value()
-	if err != nil {
-		return 0, err
-	}
-	s, _ := i.(int64)
-	return int(s), nil
-}
 
 func (p Post) CheckValidUserId(s string) error {
 	aud, _ := strconv.Atoi(s)
@@ -71,7 +34,7 @@ func NewPosts() *Posts {
 func NewPost(b []byte) (*Post, error) {
 	now := time.Time{}.Unix()
 	post := &Post{}
-	err := json.Unmarshal(b, post)
+	err := post.FromJSON(b)
 	if err != nil {
 		return post, err
 	}
@@ -83,7 +46,7 @@ func NewPost(b []byte) (*Post, error) {
 func NewUser(b []byte) (*User, error) {
 	now := time.Time{}.Unix()
 	user := &User{}
-	err := json.Unmarshal(b, user)
+	err := user.FromJSON(b)
 	if err != nil {
 		return user, err
 	}
@@ -93,7 +56,18 @@ func NewUser(b []byte) (*User, error) {
 	return user, nil
 }
 
-func (p *Post) Select(id string) error {
+func (u *User) Select() error {
+	ok, err := engine.Get(u)
+	if err != nil {
+		return err
+	}
+	if ok != true {
+		return ErrEmpty
+	}
+	return nil
+}
+
+func (p *Post) SelectById(id string) error {
 	_, err := engine.Where("id=?", id).Get(p)
 	if err != nil {
 		return err
@@ -137,8 +111,6 @@ func (u *User) Insert() error {
 }
 
 func (p *Post) Update() error {
-	now := time.Time{}.Unix()
-	p.UpdatedAt.Scan(now)
 	return nil
 }
 

@@ -50,13 +50,13 @@ func (a Auth) Request(method string, path string, p map[string]interface{}) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	_, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println(err)
 	}
-	_ = body
-	fmt.Println(resp.Header.Get("Authorization"))
-	fmt.Printf("\n%s\n", body)
+	fmt.Printf("%+v\n", resp.Header)
+	//fmt.Println(resp.Header.Get("Authorization"))
+	//fmt.Printf("\n%s\n", body)
 	//fmt.Printf("\n%+v\n", resp.Header)
 }
 
@@ -103,7 +103,7 @@ func (a *Auth) Login(id int, pass string, create bool) error {
 
 func main() {
 	a := &Auth{}
-	err := a.Login(3, "test", true)
+	err := a.Login(4, "test1", true)
 	fmt.Println(a.Token)
 	if err != nil {
 		fmt.Println(err)
@@ -117,5 +117,5 @@ func main() {
 	//	"password": "test",
 	//}
 
-	a.Request("GET", "/posts", nil)
+	a.Request("GET", "/posts/1", nil)
 }

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -23,6 +24,11 @@ type TableMapper struct{}
 type Posts struct {
 	PostList []Post        `json:"post_list"`
 	Page     dbr.NullInt64 `json:"page"`
+}
+
+type Solt struct {
+	UserId dbr.NullInt64  `xorm:"id"`
+	Solt   dbr.NullString `xorm:"solt"`
 }
 
 type Post struct {
@@ -73,6 +79,54 @@ func initDb() *xorm.Engine {
 	}
 	engine.SetMapper(TableMapper{})
 	return engine
+}
+
+func (m *User) ToJSON() ([]byte, error) {
+	b, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+	return b, err
+}
+
+func (m *Post) ToJSON() ([]byte, error) {
+	b, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+	return b, err
+}
+
+func (m *User) FromJSON(b []byte) error {
+	err := json.Unmarshal(b, m)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Post) FromJSON(b []byte) error {
+	err := json.Unmarshal(b, m)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Posts) FromJSON(b []byte) error {
+	err := json.Unmarshal(b, m)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Posts) ToJSON() ([]byte, error) {
+	b, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+	return b, err
 }
 
 func (u *User) Pass2Hash() error {
@@ -155,6 +209,7 @@ func (m Post) Valid(p map[string]string) error {
 	}
 	return nil
 }
+
 func (m User) Valid(p map[string]string) error {
 	screenname, err := m.ScreenName.Value()
 	if err != nil || screenname == nil {
@@ -215,5 +270,9 @@ func (m User) Valid(p map[string]string) error {
 			return errors.New("invalid updated_at pattern")
 		}
 	}
+	return nil
+}
+
+func (m Posts) Valid() error {
 	return nil
 }

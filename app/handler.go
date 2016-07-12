@@ -1,7 +1,6 @@
 package app
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -11,12 +10,12 @@ import (
 
 func GetPostHandler(w http.ResponseWriter, r *http.Request, p map[string]string) {
 	post := &Post{}
-	err := post.Select(p["post_id"])
+	err := post.SelectById(p["post_id"])
 	if err != nil {
 		Error(&w, 400, err)
 		return
 	}
-	b, err := json.Marshal(post)
+	b, err := post.ToJSON()
 	if err != nil {
 		Error(&w, 400, err)
 		return
@@ -47,7 +46,7 @@ func GetPostsHandler(w http.ResponseWriter, r *http.Request, p map[string]string
 		Error(&w, 400, err)
 		return
 	}
-	b, err := json.Marshal(posts)
+	b, err := posts.ToJSON()
 	if err != nil {
 		Error(&w, 400, err)
 		return
@@ -77,7 +76,9 @@ func PostUserHandler(w http.ResponseWriter, r *http.Request) {
 		Error(&w, 400, err)
 		return
 	}
-	Success(&w, nil)
+
+	b, err := user.ToJSON()
+	Success(&w, b)
 	return
 }
 
@@ -102,6 +103,11 @@ func PostPostHandler(w http.ResponseWriter, r *http.Request, p map[string]string
 		Error(&w, 400, err)
 		return
 	}
-	Success(&w, nil)
+
+	b, err := post.ToJSON()
+	if err != nil {
+		Error(&w, 400, err)
+	}
+	Success(&w, b)
 	return
 }

@@ -1,3 +1,4 @@
 
-# Sample Apps
+# JSON Schema Auto Generaterd Sample App
+
 
