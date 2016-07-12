@@ -1,10 +1,12 @@
 package app
 
 import (
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"net/url"
 
@@ -36,11 +38,13 @@ func ExistUser(r *http.Request) (int, error) {
 	if err != nil || p == nil {
 		return 0, ErrInvalid
 	}
+
 	pb, _ := p.(string)
 	err = user.Select()
 	if err != nil {
 		return 0, err
 	}
+	
 	err = user.ComparePassword(pb)
 	if err != nil {
 		return 0, err
@@ -88,9 +92,29 @@ func Error(w *http.ResponseWriter, code int, err error) {
 	fmt.Fprintf(*w, string(b))
 }
 
-func Pass2Hash(s string) string {
-	c, _ := scrypt.Key([]byte(s), []byte("password"), 16384, 8, 1, 32)
+func Pass2Hash(s, salt string) string {
+	c, _ := scrypt.Key([]byte(s), []byte(salt), 16384, 8, 1, 32)
 	return hex.EncodeToString(c[:])
+}
+
+func CreateSalt() (string, error) {
+	b := make([]byte, 14)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", err
+	}
+	salt := base64.StdEncoding.EncodeToString(b)
+	return salt, nil
+}
+func SearchSaltById(i int) (string, error) {
+	salt := &Salt{}
+	err := salt.SelectById(i)
+	if err != nil {
+		return "", err
+	}
+	s, _ := salt.Salt.Value()
+	ts, _ := s.(string)
+	return ts, nil
 }
 
 func Interval(l int) (int, int) {

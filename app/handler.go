@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -66,7 +67,7 @@ func PostUserHandler(w http.ResponseWriter, r *http.Request) {
 		Error(&w, 400, err)
 		return
 	}
-	err = user.Pass2Hash()
+	s, err := user.Pass2Hash()
 	if err != nil {
 		Error(&w, 400, err)
 		return
@@ -76,7 +77,12 @@ func PostUserHandler(w http.ResponseWriter, r *http.Request) {
 		Error(&w, 400, err)
 		return
 	}
-
+	id, _ := user.Id.Value()
+	tid, ok := id.(int64)
+	fmt.Println(ok)
+	salt := NewSalt(int(tid), s)
+	salt.Insert()
+	fmt.Println("ok4", "\n\n")
 	b, err := user.ToJSON()
 	Success(&w, b)
 	return
@@ -107,6 +113,7 @@ func PostPostHandler(w http.ResponseWriter, r *http.Request, p map[string]string
 	b, err := post.ToJSON()
 	if err != nil {
 		Error(&w, 400, err)
+		return
 	}
 	Success(&w, b)
 	return

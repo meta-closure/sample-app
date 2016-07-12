@@ -16,11 +16,11 @@ var (
 )
 
 type Auth struct {
-	Token string
+	Token string `json:"token"`
 }
 
 type User struct {
-	Id              dbr.NullInt64  `xorm:"id",json:"user_id,omitempty"`
+	Id              dbr.NullInt64  `xorm:"id" json:"user_id,omitempty"`
 	CreatedAt       dbr.NullInt64  `xorm:"created_at" json:"created_at,omitempty"`
 	UpdatedAt       dbr.NullInt64  `xorm:"updated_at" json:"updated_at,omitempty"`
 	ScreenName      dbr.NullString `xorm:"screen_name" json:"screen_name"`
@@ -50,10 +50,11 @@ func (a Auth) Request(method string, path string, p map[string]interface{}) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	_, err = ioutil.ReadAll(resp.Body)
+	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println(err)
 	}
+	fmt.Printf("%s", b)
 	fmt.Printf("%+v\n", resp.Header)
 	//fmt.Println(resp.Header.Get("Authorization"))
 	//fmt.Printf("\n%s\n", body)
@@ -90,20 +91,15 @@ func (a *Auth) Login(id int, pass string, create bool) error {
 	if err != nil {
 		fmt.Println(err)
 	}
-	token := resp.Header.Get("Authorization")
 	x, _ := ioutil.ReadAll(resp.Body)
-	fmt.Printf("%s\n", x)
-	if token != "" {
-		a.Token = token
-		return nil
-	} else {
-		return err
-	}
+
+	json.Unmarshal(x, a)
+	return nil
 }
 
 func main() {
 	a := &Auth{}
-	err := a.Login(4, "test1", true)
+	err := a.Login(111, "test", true)
 	fmt.Println(a.Token)
 	if err != nil {
 		fmt.Println(err)
@@ -112,10 +108,5 @@ func main() {
 	//	"title": "fuck off",
 	//	"body":  "off",
 	//}
-
-	//user := map[string]interface{}{
-	//	"password": "test",
-	//}
-
 	a.Request("GET", "/posts/1", nil)
 }

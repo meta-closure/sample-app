@@ -26,24 +26,24 @@ type Posts struct {
 	Page     dbr.NullInt64 `json:"page"`
 }
 
-type Solt struct {
-	UserId dbr.NullInt64  `xorm:"id"`
-	Solt   dbr.NullString `xorm:"solt"`
+type Salt struct {
+	UserId dbr.NullInt64  `xorm:"user_id"`
+	Salt   dbr.NullString `xorm:"salt"`
 }
 
 type Post struct {
 	Id        dbr.NullInt64  `xorm:"id" json:"post_id,omitempty"`
-	CreatedAt dbr.NullTime   `xorm:"created_at" json:"created_at omitempty"`
-	UpdatedAt dbr.NullTime   `xorm:"updated_at" json:"updated_at omitempty"`
-	Title     dbr.NullString `xorm:"title" json:"title" json:"title"`
-	Body      dbr.NullString `xorm:"body" json:"body" json:"body"`
+	CreatedAt dbr.NullTime   `xorm:"created_at" json:"created_at,omitempty"`
+	UpdatedAt dbr.NullTime   `xorm:"updated_at" json:"updated_at,omitempty"`
+	Title     dbr.NullString `xorm:"title" json:"title"`
+	Body      dbr.NullString `xorm:"body" json:"body"`
 	UserId    dbr.NullInt64  `xorm:"user_id" json:"user_id"`
 }
 
 type User struct {
 	Id              dbr.NullInt64  `xorm:"id" json:"user_id,omitempty"`
-	CreatedAt       dbr.NullTime   `xorm:"created_at" json:"created_at omitempty"`
-	UpdatedAt       dbr.NullTime   `xorm:"updated_at" json:"updated_at omitempty"`
+	CreatedAt       dbr.NullTime   `xorm:"created_at" json:"created_at,omitempty"`
+	UpdatedAt       dbr.NullTime   `xorm:"updated_at" json:"updated_at,omitempty"`
 	ScreenName      dbr.NullString `xorm:"screen_name" json:"screen_name"`
 	CryptedPassword dbr.NullString `xorm:"crypted_password" json:"crypted_password"`
 	Password        dbr.NullString `xorm:"-" json:"password"`
@@ -51,6 +51,8 @@ type User struct {
 
 func (t TableMapper) Obj2Table(s string) string {
 	switch s {
+	case "Salt":
+		return "salt"
 	case "Post":
 		return "posts"
 	case "User":
@@ -62,6 +64,8 @@ func (t TableMapper) Obj2Table(s string) string {
 
 func (t TableMapper) Table2Obj(s string) string {
 	switch s {
+	case "salt":
+		return "Salt"
 	case "posts":
 		return "Post"
 	case "users":
@@ -129,15 +133,15 @@ func (m *Posts) ToJSON() ([]byte, error) {
 	return b, err
 }
 
-func (u *User) Pass2Hash() error {
+func (u *User) Pass2Hash() (string, error) {
 	p, err := u.Password.Value()
 	if err != nil || p == nil {
-		return ErrInvalid
+		return "", ErrInvalid
 	}
 	ps, _ := p.(string)
-	u.CryptedPassword.Scan(Pass2Hash(ps))
-	fmt.Printf(Pass2Hash(ps))
-	return nil
+	salt, _ := CreateSalt()
+	u.CryptedPassword.Scan(Pass2Hash(ps, salt))
+	return salt, nil
 }
 
 func (u *User) ComparePassword(p string) error {
@@ -146,7 +150,13 @@ func (u *User) ComparePassword(p string) error {
 		return ErrInvalid
 	}
 	hp, _ := h.(string)
-	if Pass2Hash(p) != hp {
+	i, _ := u.Id.Value()
+	id, _ := i.(int64)
+	salt, err := SearchSaltById(int(id))
+	if err != nil {
+		return err
+	}
+	if Pass2Hash(p, salt) != hp {
 		return ErrInvalidPassword
 	}
 	return nil

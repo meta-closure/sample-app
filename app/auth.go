@@ -1,13 +1,9 @@
 package app
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/dgrijalva/jwt-go"
-)
-
-var (
-	encrypt_key = "secret"
 )
 
 type UserClaim struct {
@@ -18,15 +14,29 @@ type UserClaim struct {
 func Auth(token string) (int, error) {
 
 	pt, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
-		return []byte(encrypt_key), nil
+		tk, ok := token.Claims.(jwt.MapClaims)
+		if ok != true {
+			return nil, errors.New("invalid token")
+		}
+		id, ok := tk["UserId"].(float64)
+		if ok != true {
+			return nil, errors.New("invalid type error")
+		}
+		s, err := SearchSaltById(int(id))
+		if err != nil {
+			return nil, err
+		}
+		return []byte(s), nil
 	})
-	if err != nil || pt.Valid != true {
-		err = fmt.Errorf("authorization error")
+	if err != nil {
 		return 0, err
 	}
+	if pt.Valid != true {
+		return 0, errors.New("invalid token")
+	}
 	tk, _ := pt.Claims.(jwt.MapClaims)
-	id, _ := tk["User_id"].(int)
-	return id, nil
+	id, _ := tk["UserId"].(float64)
+	return int(id), nil
 }
 
 func CreateToken(i int) (string, error) {
@@ -36,25 +46,13 @@ func CreateToken(i int) (string, error) {
 			ExpiresAt: jwt.TimeFunc().AddDate(0, 0, 1).Unix(),
 		},
 	}
-	jwtoken := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
-	t, err := jwtoken.SignedString([]byte(encrypt_key))
+	s, err := SearchSaltById(i)
 	if err != nil {
-		fmt.Println(err)
-	}
-	return t, nil
-}
-
-func CreateExpiredToken(i int) (string, error) {
-	claim := UserClaim{
-		i,
-		jwt.StandardClaims{
-			ExpiresAt: 1,
-		},
+		return "", err
 	}
 	jwtoken := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
-	t, err := jwtoken.SignedString([]byte(encrypt_key))
+	t, err := jwtoken.SignedString([]byte(s))
 	if err != nil {
-		fmt.Println(err)
 		return "", err
 	}
 	return t, nil

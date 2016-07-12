@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
@@ -25,6 +26,13 @@ func (p Post) CheckValidUserId(s string) error {
 		return ErrInvalid
 	}
 	return nil
+}
+
+func NewSalt(i int, salt string) *Salt {
+	s := &Salt{}
+	s.Salt.Scan(salt)
+	s.UserId.Scan(i)
+	return s
 }
 
 func NewPosts() *Posts {
@@ -54,6 +62,17 @@ func NewUser(b []byte) (*User, error) {
 	user.UpdatedAt.Scan(now)
 
 	return user, nil
+}
+
+func (s *Salt) SelectById(i int) error {
+	ok, err := engine.Where("user_id=?", i).Get(s)
+	if err != nil {
+		return err
+	}
+	if ok != true {
+		return ErrEmpty
+	}
+	return nil
 }
 
 func (u *User) Select() error {
@@ -96,14 +115,20 @@ func (p *Post) Insert() error {
 }
 
 func (u *User) Insert() error {
-	pass, err := u.Password.Value()
+	_, err := engine.Insert(u)
 	if err != nil {
 		return err
 	}
-	p := pass.(string)
-	hash := Pass2Hash(p)
-	u.CryptedPassword.Scan(hash)
-	_, err = engine.Insert(u)
+	_, err = engine.Get(u)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Salt) Insert() error {
+	fmt.Println(m)
+	_, err := engine.Insert(m)
 	if err != nil {
 		return err
 	}

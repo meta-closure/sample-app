@@ -39,7 +39,7 @@ func (g GetHock) GetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	id, err := app.Auth(token)
 	if err != nil {
-		app.Error(&w, 401, ErrInvalidToken)
+		app.Error(&w, 401, err)
 		return
 	}
 	payload := mux.Vars(r)
