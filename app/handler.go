@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -77,12 +76,8 @@ func PostUserHandler(w http.ResponseWriter, r *http.Request) {
 		Error(&w, 400, err)
 		return
 	}
-	id, _ := user.Id.Value()
-	tid, ok := id.(int64)
-	fmt.Println(ok)
-	salt := NewSalt(int(tid), s)
+	salt := NewSalt(int(user.Id.Int64), s)
 	salt.Insert()
-	fmt.Println("ok4", "\n\n")
 	b, err := user.ToJSON()
 	Success(&w, b)
 	return

@@ -134,25 +134,28 @@ func (m *Posts) ToJSON() ([]byte, error) {
 }
 
 func (u *User) Pass2Hash() (string, error) {
-	p, err := u.Password.Value()
-	if err != nil || p == nil {
-		return "", ErrInvalid
+	if u.Password.Valid != true {
+		return "", errors.New("password empty")
 	}
-	ps, _ := p.(string)
-	salt, _ := CreateSalt()
-	u.CryptedPassword.Scan(Pass2Hash(ps, salt))
+	p := u.Password.String
+	salt, err := CreateSalt()
+	if err != nil {
+		return "", err
+	}
+	u.CryptedPassword.Scan(Pass2Hash(p, salt))
 	return salt, nil
 }
 
 func (u *User) ComparePassword(p string) error {
-	h, err := u.CryptedPassword.Value()
-	if err != nil || h == nil {
+	if u.CryptedPassword.Valid != true {
 		return ErrInvalid
 	}
-	hp, _ := h.(string)
-	i, _ := u.Id.Value()
-	id, _ := i.(int64)
-	salt, err := SearchSaltById(int(id))
+	hp := u.CryptedPassword.String
+	if u.Id.Valid != true {
+		return ErrInvalid
+	}
+	i := u.Id.Int64
+	salt, err := SearchSaltById(int(i))
 	if err != nil {
 		return err
 	}
@@ -164,55 +167,38 @@ func (u *User) ComparePassword(p string) error {
 
 func (m Post) Valid(p map[string]string) error {
 
-	title, err := m.Title.Value()
-	if err != nil || title == nil {
+	if m.Title.Valid != true {
 		return ErrInvalid
 	} else {
-		ttitle, ok := title.(string)
-		if ok != true {
-			return ErrInvalid
-		}
-		if len(ttitle) > 255 {
+		title := m.Title.String
+		if len(title) > 255 {
 			return errors.New("invalid title too long")
 		}
 	}
-
-	body, err := m.Body.Value()
-	if err != nil || body == nil {
+	if m.Body.Valid != true {
 		return ErrInvalid
 	} else {
-		tbody, ok := body.(string)
-		if ok != true {
-			return ErrInvalid
-		}
-		if len(tbody) > 20000 {
+		body := m.Body.String
+		if len(body) > 20000 {
 			return errors.New("invalid body too long")
 		}
 	}
 
-	createdat, err := m.CreatedAt.Value()
-	if err != nil || createdat == nil {
+	if m.CreatedAt.Valid != true {
 		return ErrInvalid
 	} else {
-		tcreatedat, ok := createdat.(string)
-		if ok != true {
-			return ErrInvalid
-		}
-		ok, err := regexp.MatchString("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", tcreatedat)
+		createdat := fmt.Sprint(m.CreatedAt.Time)
+		ok, err := regexp.MatchString("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", createdat)
 		if err != nil || ok != true {
 			return errors.New("invalid created_at pattern")
 		}
 	}
 
-	updatedat, err := m.UpdatedAt.Value()
-	if err != nil || createdat == nil {
+	if m.UpdatedAt.Valid != true {
 		return ErrInvalid
 	} else {
-		tupdatedat, ok := updatedat.(string)
-		if ok != true {
-			return ErrInvalid
-		}
-		ok, err := regexp.MatchString("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", tupdatedat)
+		updatedat := fmt.Sprint(m.UpdatedAt.Time)
+		ok, err := regexp.MatchString("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", updatedat)
 		if err != nil || ok != true {
 			return errors.New("invalid updated_at pattern")
 		}
@@ -221,65 +207,52 @@ func (m Post) Valid(p map[string]string) error {
 }
 
 func (m User) Valid(p map[string]string) error {
-	screenname, err := m.ScreenName.Value()
-	if err != nil || screenname == nil {
+
+	if m.ScreenName.Valid != true {
 		return ErrInvalid
 	} else {
-		tscreenname, ok := screenname.(string)
-		if ok != true {
-			return ErrInvalid
-		}
-		if len(tscreenname) > 255 {
+		screenname := m.ScreenName.String
+		if len(screenname) > 255 {
 			return errors.New("invalid tscreenname too long")
 		}
 	}
-	password, err := m.Password.Value()
-	if err != nil || password == nil {
+
+	if m.Password.Valid != true {
 		return ErrInvalid
 	} else {
-		tpassword, ok := password.(string)
-		if ok != true {
-			return ErrInvalid
-		}
-		if len(tpassword) < 8 {
+		password := m.Password.String
+		if len(password) < 8 {
 			return errors.New("invalid password too short")
 		}
-		if len(tpassword) > 255 {
+		if len(password) > 255 {
 			return errors.New("invalid password too long")
 		}
-		ok, err := regexp.MatchString("^(?=.*?[a-z])(?=.*?[A-Z])(?=.*?\\d)[a-zA-Z\\d]*$", tpassword)
+		ok, err := regexp.MatchString("^(?=.*?[a-z])(?=.*?[A-Z])(?=.*?\\d)[a-zA-Z\\d]*$", password)
 		if err != nil || ok != true {
 			return errors.New("invalid password pattern")
 		}
 	}
 
-	createdat, err := m.CreatedAt.Value()
-	if err != nil || createdat == nil {
+	if m.CreatedAt.Valid != true {
 		return ErrInvalid
 	} else {
-		tcreatedat, ok := createdat.(string)
-		if ok != true {
-			return ErrInvalid
-		}
-		ok, err := regexp.MatchString("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", tcreatedat)
+		createdat := fmt.Sprint(m.CreatedAt.Time)
+		ok, err := regexp.MatchString("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", createdat)
 		if err != nil || ok != true {
 			return errors.New("invalid created_at pattern")
 		}
 	}
 
-	updatedat, err := m.UpdatedAt.Value()
-	if err != nil || createdat == nil {
+	if m.UpdatedAt.Valid != true {
 		return ErrInvalid
 	} else {
-		tupdatedat, ok := updatedat.(string)
-		if ok != true {
-			return ErrInvalid
-		}
-		ok, err := regexp.MatchString("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", tupdatedat)
+		updatedat := fmt.Sprint(m.UpdatedAt.Time)
+		ok, err := regexp.MatchString("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", updatedat)
 		if err != nil || ok != true {
 			return errors.New("invalid updated_at pattern")
 		}
 	}
+
 	return nil
 }
 

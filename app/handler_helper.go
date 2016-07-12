@@ -30,30 +30,32 @@ func ExistUser(r *http.Request) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	
 	err = user.FromJSON(buf)
 	if err != nil {
 		return 0, err
 	}
-	p, err := user.Password.Value()
-	if err != nil || p == nil {
+
+	if user.Password.Valid {
 		return 0, ErrInvalid
 	}
+	p := user.Password.String
 
-	pb, _ := p.(string)
 	err = user.Select()
 	if err != nil {
 		return 0, err
 	}
-	
-	err = user.ComparePassword(pb)
+
+	err = user.ComparePassword(p)
 	if err != nil {
 		return 0, err
 	}
-	i, err := user.Id.Value()
-	if err != nil {
-		return 0, err
+
+	if user.Id.Valid != true {
+		return 0, ErrInvalid
 	}
-	s, _ := i.(int64)
+	s := user.Id.Int64
+
 	return int(s), nil
 }
 

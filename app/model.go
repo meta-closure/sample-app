@@ -14,15 +14,11 @@ var (
 
 func (p Post) CheckValidUserId(s string) error {
 	aud, _ := strconv.Atoi(s)
-	u, err := p.UserId.Value()
-	if err != nil || u == nil {
+	if p.UserId.Valid != true {
 		return ErrInvalid
 	}
-	ud, ok := u.(int)
-	if ok != true {
-		return ErrInvalid
-	}
-	if aud != ud {
+	u := p.UserId.Int64
+	if aud != int(u) {
 		return ErrInvalid
 	}
 	return nil

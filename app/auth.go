@@ -34,8 +34,14 @@ func Auth(token string) (int, error) {
 	if pt.Valid != true {
 		return 0, errors.New("invalid token")
 	}
-	tk, _ := pt.Claims.(jwt.MapClaims)
-	id, _ := tk["UserId"].(float64)
+	tk, ok := pt.Claims.(jwt.MapClaims)
+	if ok != true {
+		return 0, ErrInvalid
+	}
+	id, ok := tk["UserId"].(float64)
+	if ok != true {
+		return 0, ErrInvalid
+	}
 	return int(id), nil
 }
 
