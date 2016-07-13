@@ -5,11 +5,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"net/url"
 
+	log "github.com/Sirupsen/logrus"
+	"github.com/dgrijalva/jwt-go"
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/scrypt"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -24,24 +26,71 @@ type Token struct {
 	Token string `json:"token"`
 }
 
-func ExistUser(r *http.Request) (int, error) {
-	user := &User{}
-	buf, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return 0, err
-	}
-	
-	err = user.FromJSON(buf)
-	if err != nil {
-		return 0, err
-	}
+type UserClaim struct {
+	UserId int
+	jwt.StandardClaims
+}
 
+func Auth(token string) (int, error) {
+
+	pt, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+		tk, ok := token.Claims.(jwt.MapClaims)
+		if ok != true {
+			return nil, ErrInvalid
+		}
+		id, ok := tk["UserId"].(float64)
+		if ok != true {
+			return nil, ErrTypeInvalid
+		}
+		s, err := SearchSaltById(int(id))
+		if err != nil {
+			return nil, err
+		}
+		return []byte(s), nil
+	})
+	if err != nil {
+		return 0, err
+	}
+	if pt.Valid != true {
+		return 0, ErrInvalidToken
+	}
+	tk, ok := pt.Claims.(jwt.MapClaims)
+	if ok != true {
+		return 0, ErrInvalid
+	}
+	id, ok := tk["UserId"].(float64)
+	if ok != true {
+		return 0, ErrInvalid
+	}
+	return int(id), nil
+}
+
+func CreateToken(i int) (string, error) {
+	claim := UserClaim{
+		i,
+		jwt.StandardClaims{
+			ExpiresAt: jwt.TimeFunc().AddDate(0, 0, 1).Unix(),
+		},
+	}
+	s, err := SearchSaltById(i)
+	if err != nil {
+		return "", err
+	}
+	jwtoken := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
+	t, err := jwtoken.SignedString([]byte(s))
+	if err != nil {
+		return "", err
+	}
+	return t, nil
+}
+
+func ExistUser(user *User) (int, error) {
 	if user.Password.Valid {
 		return 0, ErrInvalid
 	}
 	p := user.Password.String
 
-	err = user.Select()
+	err := user.Select()
 	if err != nil {
 		return 0, err
 	}
@@ -71,24 +120,33 @@ func Query(r *http.Request) (map[string][]string, error) {
 	return j, nil
 }
 
-func LoginSuccess(w *http.ResponseWriter, token string) {
+func LoginSuccess(w *http.ResponseWriter, r []byte, token string) {
 	t := Token{Token: token}
 	b, _ := json.Marshal(t)
 	(*w).WriteHeader(200)
+	log.Infof("Loggin Succeed, Request: %s", r)
 	fmt.Fprintf(*w, string(b))
 }
 
-func Success(w *http.ResponseWriter, b []byte) {
+func LoginFailed(w *http.ResponseWriter, r []byte, err error) {
+	(*w).WriteHeader(401)
+	log.Infof("Loggin Failed, Request: %s, Error: %v", r, err)
+
+}
+
+func Success(w *http.ResponseWriter, r, b []byte) {
 	(*w).WriteHeader(200)
+	log.Infof("Request Succeed, Request: %s", r)
 	if b != nil {
 		fmt.Fprintf(*w, string(b))
 	}
 }
 
-func Error(w *http.ResponseWriter, code int, err error) {
+func Error(w *http.ResponseWriter, r []byte, code int, err error) {
 	ok := Ok{Ok: false,
 		Message: fmt.Sprint(err),
 	}
+	log.Infof("Request Failed, Request: %s, Error: %v", r, err)
 	b, _ := json.Marshal(ok)
 	(*w).WriteHeader(code)
 	fmt.Fprintf(*w, string(b))
@@ -112,6 +170,7 @@ func SearchSaltById(i int) (string, error) {
 	salt := &Salt{}
 	err := salt.SelectById(i)
 	if err != nil {
+		errors.Wrapf(err, "Create &d' user id salt is fail", i)
 		return "", err
 	}
 	s, _ := salt.Salt.Value()

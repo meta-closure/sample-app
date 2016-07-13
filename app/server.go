@@ -1,30 +1,17 @@
-package main
+package app
 
 import (
 	"errors"
-	"fmt"
+	"io/ioutil"
 	"net/http"
-	"time"
 
-	"./app"
-	"github.com/Sirupsen/logrus"
 	"github.com/gorilla/mux"
 )
 
 var (
-	log             = initLog()
 	ErrInvalidToken = errors.New("invalid auth token")
 	ErrEmptyToken   = errors.New("auth token is empty")
 )
-
-func initLog() *logrus.Logger {
-	log := logrus.New()
-	return log
-}
-
-func WithTime(l *logrus.Logger) *logrus.Entry {
-	return l.WithField("TIME:", time.Now())
-}
 
 type GetHock struct {
 	handler   func(http.ResponseWriter, *http.Request, map[string]string)
@@ -34,12 +21,12 @@ type GetHock struct {
 func (g GetHock) GetHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
 	if token == "" {
-		app.Error(&w, 401, ErrEmptyToken)
+		Error(&w, nil, 401, ErrEmptyToken)
 		return
 	}
-	id, err := app.Auth(token)
+	id, err := Auth(token)
 	if err != nil {
-		app.Error(&w, 401, err)
+		Error(&w, nil, 401, err)
 		return
 	}
 	payload := mux.Vars(r)
@@ -57,12 +44,12 @@ type PostHock struct {
 func (p PostHock) PostHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
 	if token == "" {
-		app.Error(&w, 401, ErrEmptyToken)
+		Error(&w, nil, 401, ErrEmptyToken)
 		return
 	}
-	id, err := app.Auth(token)
+	id, err := Auth(token)
 	if err != nil {
-		app.Error(&w, 401, ErrInvalidToken)
+		Error(&w, nil, 401, ErrInvalidToken)
 		return
 	}
 	payload := map[string]string{
@@ -84,21 +71,28 @@ type PutHock struct {
 }
 
 func CreateTokenHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.ExistUser(r)
+	user := &User{}
+	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		fmt.Println(err)
-		app.Error(&w, 401, err)
-		return
+		LoginFailed(&w, nil, err)
 	}
-	t, err := app.CreateToken(id)
-	if err != nil {
-		app.Error(&w, 401, err)
-		return
-	}
-	app.LoginSuccess(&w, t)
-}
 
-func Test(w http.ResponseWriter, r *http.Request) {}
+	err = user.FromJSON(buf)
+	if err != nil {
+		LoginFailed(&w, buf, err)
+	}
+	id, err := ExistUser(user)
+	if err != nil {
+		LoginFailed(&w, buf, err)
+		return
+	}
+	t, err := CreateToken(id)
+	if err != nil {
+		LoginFailed(&w, buf, err)
+		return
+	}
+	LoginSuccess(&w, buf, t)
+}
 
 func NoCheck(map[string]string) bool {
 	return true
@@ -106,12 +100,11 @@ func NoCheck(map[string]string) bool {
 
 func (s *Server) SetupRoutes() {
 	r := s.Router
-	r.HandleFunc("/test", Test)
-	r.HandleFunc("/posts", GetHock{handler: app.GetPostsHandler, validater: NoCheck}.GetHandler).Methods("GET")
-	r.HandleFunc("/posts/{post_id}", GetHock{handler: app.GetPostHandler, validater: NoCheck}.GetHandler).Methods("GET")
-	r.HandleFunc("/posts", PostHock{handler: app.PostPostHandler}.PostHandler).Methods("POST")
+	r.HandleFunc("/posts", GetHock{handler: GetPostsHandler, validater: NoCheck}.GetHandler).Methods("GET")
+	r.HandleFunc("/posts/{post_id}", GetHock{handler: GetPostHandler, validater: NoCheck}.GetHandler).Methods("GET")
+	r.HandleFunc("/posts", PostHock{handler: PostPostHandler}.PostHandler).Methods("POST")
 	r.HandleFunc("/login", CreateTokenHandler).Methods("POST")
-	r.HandleFunc("/users", app.PostUserHandler).Methods("POST")
+	r.HandleFunc("/users", PostUserHandler).Methods("POST")
 }
 
 type Server struct {
@@ -143,9 +136,4 @@ func New() *Server {
 	}
 	s.SetupRoutes()
 	return s
-}
-
-func main() {
-	WithTime(log).Info("okpk")
-	Run(":8080")
 }
