@@ -21,7 +21,7 @@ func GetPostHandler(w http.ResponseWriter, r *http.Request, p map[string]string)
 		Failed(&w, r, 400, err)
 		return
 	}
-	Success(&w, nil, b)
+	Success(&w, r, nil, b)
 	return
 }
 
@@ -52,7 +52,7 @@ func GetPostsHandler(w http.ResponseWriter, r *http.Request, p map[string]string
 		Failed(&w, r, 400, err)
 		return
 	}
-	Success(&w, nil, b)
+	Success(&w, r, nil, b)
 	return
 }
 
@@ -62,7 +62,7 @@ func PostUserHandler(w http.ResponseWriter, r *http.Request) {
 		Failed(&w, r, 400, err)
 		return
 	}
-	
+
 	user, err := NewUser(buf)
 	if err != nil {
 		Failed(&w, r, 400, err)
@@ -84,7 +84,7 @@ func PostUserHandler(w http.ResponseWriter, r *http.Request) {
 	salt := NewSalt(int(user.Id.Int64), s)
 	salt.Insert()
 	b, err := user.ToJSON()
-	Success(&w, buf, b)
+	Success(&w, r, buf, b)
 	return
 }
 
@@ -117,6 +117,6 @@ func PostPostHandler(w http.ResponseWriter, r *http.Request, p map[string]string
 		Failed(&w, r, 400, err)
 		return
 	}
-	Success(&w, buf, b)
+	Success(&w, r, buf, b)
 	return
 }
