@@ -21,7 +21,7 @@ func cli() int {
 	_, err := flags.Parse(o)
 	if err != nil {
 		log.Printf("%s", err)
-		return -1
+		return 1
 	}
 
 	if o.Port != "" {
@@ -29,7 +29,7 @@ func cli() int {
 	} else {
 		server(":" + o.Port)
 	}
-	return 1
+	return 0
 }
 
 func server(p string) {

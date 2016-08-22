@@ -6,11 +6,24 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/pkg/errors"
 )
 
 var (
-	engine = initDb()
+	engine = InitDb()
 )
+
+func SearchSaltById(i int) (string, error) {
+	salt := &Salt{}
+	err := salt.SelectById(i)
+	if err != nil {
+		errors.Wrapf(err, "Create &d' user id salt is fail", i)
+		return "", err
+	}
+	s, _ := salt.Salt.Value()
+	ts, _ := s.(string)
+	return ts, nil
+}
 
 func (p Post) CheckValidUserId(s string) error {
 	aud, _ := strconv.Atoi(s)
@@ -82,6 +95,23 @@ func (u *User) Select() error {
 	return nil
 }
 
+func (u User) Get() error {
+	if u.Password.Valid {
+		return errors.Wrap(ErrEmpty, "Password")
+	}
+
+	if u.Id.Valid {
+		return errors.Wrap(ErrEmpty, "id")
+	}
+
+	err := u.Select()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (p *Post) SelectById(id string) error {
 	_, err := engine.Where("id=?", id).Get(p)
 	if err != nil {
@@ -93,7 +123,7 @@ func (p *Post) SelectById(id string) error {
 func (p *Posts) SelectByPage(j int) error {
 	p.Page.Scan(j)
 	pl := &[]Post{}
-	st, ed := Interval(j)
+	st, ed := 1, 10
 	err := engine.Where("id between ? and ?", st, ed).Find(pl)
 	if err != nil {
 		return err
