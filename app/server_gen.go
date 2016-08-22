@@ -127,16 +127,16 @@ func CreateTokenHandler(w http.ResponseWriter, r *http.Request) {
 
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		l.Failed(&w, nil, err)
+		l.Failed(&w, r, b, err)
 	}
 
 	err = l.Create(b)
 	if err != nil {
-		l.Failed(&w, b, errors.Wrap(err, "Failed to create token"))
+		l.Failed(&w, r, b, errors.Wrap(err, "Failed to create token"))
 		return
 	}
 
-	l.Success(&w, b)
+	l.Success(&w, r, b)
 	return
 }
 
