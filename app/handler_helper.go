@@ -69,8 +69,13 @@ func Failed(w *http.ResponseWriter, r *http.Request, code int, err error) {
 
 func Logger(w *http.ResponseWriter, r *http.Request, code int, err error, req, res []byte) {
 	var s string
-	fmt.Sprintf(s, "Host: %s%s\nMethod: %s\nHeader:\n%v\nStatusCode: %d\n Error: %s\nRequest: %s\nResponse: %s\n",
-		r.Host, r.RequestURI, r.Method, r.Header, code, err.Error(), req, res)
+	if err != nil {
+		s = fmt.Sprintf("Host: %s%s\nMethod: %s\nHeader: %v\nStatusCode: %d\nError: %s\nRequest: %s\nResponse: %s\n",
+			r.Host, r.RequestURI, r.Method, r.Header, code, err.Error(), req, res)
+	} else {
+		s = fmt.Sprintf("Host: %s%s\nMethod: %s\nHeader: %v\nStatusCode: %d\nRequest: %s\nResponse: %s\n",
+			r.Host, r.RequestURI, r.Method, r.Header, code, req, res)
+	}
 	fmt.Println(s)
 }
 

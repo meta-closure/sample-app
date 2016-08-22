@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/pkg/errors"
 )
 
 func GetPostHandler(w http.ResponseWriter, r *http.Request, p map[string]string) {
@@ -74,7 +75,6 @@ func PostUserHandler(w http.ResponseWriter, r *http.Request) {
 		Failed(&w, r, 400, err)
 		return
 	}
-
 	err = user.Insert()
 	if err != nil {
 		Failed(&w, r, 400, err)
@@ -94,15 +94,17 @@ func PostPostHandler(w http.ResponseWriter, r *http.Request, p map[string]string
 		Failed(&w, r, 400, err)
 		return
 	}
+
 	post, err := NewPost(buf)
 	if err != nil {
 		Failed(&w, r, 400, err)
 		return
 	}
 
-	// check request user id is valid
-	if p["auth_user_id"] != string(post.UserId.Int64) {
-		Failed(&w, r, 400, ErrInvalid)
+	// check request user id is user id
+	i, _ := strconv.Atoi(p["auth_user_id"])
+	if i != int(post.UserId.Int64) {
+		Failed(&w, r, 400, errors.New("User id not exist"))
 		return
 	}
 

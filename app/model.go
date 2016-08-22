@@ -38,6 +38,7 @@ func NewPost(b []byte) (*Post, error) {
 	}
 	post.CreatedAt.Scan(now)
 	post.UpdatedAt.Scan(now)
+
 	return post, nil
 }
 
@@ -115,6 +116,11 @@ func (p *Posts) SelectByPage(j int) error {
 
 func (p *Post) Insert() error {
 	_, err := engine.Insert(p)
+	if err != nil {
+		return err
+	}
+
+	_, err = engine.Get(p)
 	if err != nil {
 		return err
 	}
