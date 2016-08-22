@@ -40,7 +40,8 @@ func (g GetHock) GetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := Auth(token)
+	l := NewLogin(token)
+	id, err := l.Auth()
 	if err != nil {
 		Failed(&w, r, 401, err)
 		return
@@ -64,7 +65,8 @@ func (p PostHock) PostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := Auth(token)
+	l := NewLogin(token)
+	id, err := l.Auth()
 	if err != nil {
 		Failed(&w, r, 401, ErrInvalidToken)
 		return
@@ -85,7 +87,8 @@ func (p PutHock) PutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := Auth(token)
+	l := NewLogin(token)
+	id, err := l.Auth()
 	if err != nil {
 		Failed(&w, r, 401, ErrInvalidToken)
 		return
@@ -105,7 +108,8 @@ func (p DeleteHock) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := Auth(token)
+	l := NewLogin(token)
+	id, err := l.Auth()
 	if err != nil {
 		Failed(&w, r, 401, ErrInvalidToken)
 		return
@@ -119,26 +123,14 @@ func (p DeleteHock) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateTokenHandler(w http.ResponseWriter, r *http.Request) {
-	l := LoginNew()
+	l := NewLogin("")
 
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		l.Failed(&w, nil, err)
 	}
 
-	u := &User{}
-	err = u.FromJSON(b)
-	if err != nil {
-		l.Failed(&w, b, errors.Wrap(err, "Invalid JSON"))
-	}
-
-	err = u.Get()
-	if err != nil {
-		l.Failed(&w, b, errors.Wrap(err, "User not exist"))
-		return
-	}
-
-	err = l.Create(int(u.Id.Int64))
+	err = l.Create(b)
 	if err != nil {
 		l.Failed(&w, b, errors.Wrap(err, "Failed to create token"))
 		return

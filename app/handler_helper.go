@@ -1,22 +1,24 @@
 package app
 
 import (
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
+
+	"github.com/pkg/errors"
+	"golang.org/x/crypto/scrypt"
 )
 
 type Login struct {
-	Token string
+	Token string `json:"token"`
 }
 
 type Message struct {
-	Error string
-}
-
-func (l Login) Valid() bool {
-	return true
+	Error string `json:"error"`
 }
 
 func Query(r *http.Request) (map[string][]string, error) {
@@ -31,8 +33,8 @@ func Query(r *http.Request) (map[string][]string, error) {
 	return j, nil
 }
 
-func LoginNew() *Login {
-	return &Login{}
+func NewLogin(t string) *Login {
+	return &Login{Token: t}
 }
 
 func (l *Login) Success(w *http.ResponseWriter, r []byte) {
@@ -59,4 +61,32 @@ func Failed(w *http.ResponseWriter, r *http.Request, code int, err error) {
 	(*w).WriteHeader(code)
 	fmt.Fprintf(*w, string(b))
 	return
+}
+
+func (u *User) Pass2Hash() (string, error) {
+	if u.Password.Valid != true {
+		return "", errors.Wrap(ErrEmpty, "User password")
+	}
+	p := u.Password.String
+	salt, err := CreateSalt()
+	if err != nil {
+		return "", err
+	}
+	u.CryptedPassword.Scan(Pass2Hash(p, salt))
+	return salt, nil
+}
+
+func CreateSalt() (string, error) {
+	b := make([]byte, 14)
+	_, err := rand.Read(b)
+	if err != nil {
+		return "", err
+	}
+	salt := base64.StdEncoding.EncodeToString(b)
+	return salt, nil
+}
+
+func Pass2Hash(s, salt string) string {
+	c, _ := scrypt.Key([]byte(s), []byte(salt), 16384, 8, 1, 32)
+	return hex.EncodeToString(c[:])
 }

@@ -62,21 +62,25 @@ func PostUserHandler(w http.ResponseWriter, r *http.Request) {
 		Failed(&w, r, 400, err)
 		return
 	}
+	
 	user, err := NewUser(buf)
 	if err != nil {
 		Failed(&w, r, 400, err)
 		return
 	}
+
 	s, err := user.Pass2Hash()
 	if err != nil {
 		Failed(&w, r, 400, err)
 		return
 	}
+
 	err = user.Insert()
 	if err != nil {
 		Failed(&w, r, 400, err)
 		return
 	}
+
 	salt := NewSalt(int(user.Id.Int64), s)
 	salt.Insert()
 	b, err := user.ToJSON()
@@ -95,11 +99,13 @@ func PostPostHandler(w http.ResponseWriter, r *http.Request, p map[string]string
 		Failed(&w, r, 400, err)
 		return
 	}
-	ok := post.CheckValidUserId(p["auth_user_id"])
-	if ok != nil {
+
+	// check request user id is valid
+	if p["auth_user_id"] != string(post.UserId.Int64) {
 		Failed(&w, r, 400, ErrInvalid)
 		return
 	}
+
 	err = post.Insert()
 	if err != nil {
 		Failed(&w, r, 400, err)

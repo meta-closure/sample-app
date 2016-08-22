@@ -1,7 +1,9 @@
 package app
 
 import (
-    "github.com/gocraft/dbr"
+	"encoding/json"
+
+	"github.com/gocraft/dbr"
 )
 
 type Posts struct {
@@ -30,4 +32,71 @@ type User struct {
 	ScreenName      dbr.NullString `xorm:"screen_name" json:"screen_name"`
 	CryptedPassword dbr.NullString `xorm:"crypted_password" json:"crypted_password"`
 	Password        dbr.NullString `xorm:"-" json:"password"`
+}
+
+func (m *User) ToJSON() ([]byte, error) {
+	b, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+	return b, err
+}
+
+func (m *Post) ToJSON() ([]byte, error) {
+	b, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+	return b, err
+}
+
+func (m *User) FromJSON(b []byte) error {
+	err := json.Unmarshal(b, m)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Post) FromJSON(b []byte) error {
+	err := json.Unmarshal(b, m)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Posts) FromJSON(b []byte) error {
+	err := json.Unmarshal(b, m)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Posts) ToJSON() ([]byte, error) {
+	b, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+	return b, err
+}
+
+func (m *Posts) String() string {
+	var s string
+	return s
+}
+
+func (m *Post) String() string {
+	var s string
+	return s
+}
+
+func (m *User) String() string {
+	var s string
+	return s
+}
+func (m *Salt) String() string {
+	var s string
+	return s
 }

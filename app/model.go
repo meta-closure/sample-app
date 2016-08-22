@@ -2,40 +2,21 @@ package app
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+
 	"github.com/pkg/errors"
 )
 
 var (
 	engine = InitDb()
+
+	ErrInvalidPassword = errors.New("invalid password")
+	ErrTypeInvalid     = errors.New("type error")
+	ErrInvalid         = errors.New("parameter invalid")
+	ErrEmpty           = errors.New("record is empty")
 )
-
-func SearchSaltById(i int) (string, error) {
-	salt := &Salt{}
-	err := salt.SelectById(i)
-	if err != nil {
-		errors.Wrapf(err, "Create &d' user id salt is fail", i)
-		return "", err
-	}
-	s, _ := salt.Salt.Value()
-	ts, _ := s.(string)
-	return ts, nil
-}
-
-func (p Post) CheckValidUserId(s string) error {
-	aud, _ := strconv.Atoi(s)
-	if p.UserId.Valid != true {
-		return ErrInvalid
-	}
-	u := p.UserId.Int64
-	if aud != int(u) {
-		return ErrInvalid
-	}
-	return nil
-}
 
 func NewSalt(i int, salt string) *Salt {
 	s := &Salt{}
@@ -73,8 +54,8 @@ func NewUser(b []byte) (*User, error) {
 	return user, nil
 }
 
-func (s *Salt) SelectById(i int) error {
-	ok, err := engine.Where("user_id=?", i).Get(s)
+func (s *Salt) SelectById() error {
+	ok, err := engine.Where("user_id=?", int(s.UserId.Int64)).Get(s)
 	if err != nil {
 		return err
 	}
@@ -95,7 +76,7 @@ func (u *User) Select() error {
 	return nil
 }
 
-func (u User) Get() error {
+func (u *User) Get() error {
 	if u.Password.Valid {
 		return errors.Wrap(ErrEmpty, "Password")
 	}

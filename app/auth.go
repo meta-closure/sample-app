@@ -1,81 +1,56 @@
 package app
 
 import (
-	"crypto/rand"
-	"encoding/base64"
-	"encoding/hex"
-	"errors"
-
 	"github.com/dgrijalva/jwt-go"
-	"golang.org/x/crypto/scrypt"
+	"github.com/pkg/errors"
 
 	_ "github.com/go-sql-driver/mysql"
 )
 
-type Token struct {
-	Token string `json:"token"`
-}
-
+// to use JWT
 type UserClaim struct {
 	UserId int
 	jwt.StandardClaims
 }
 
+func (l Login) Auth() (int, error) {
+	pt, err := jwt.Parse(l.Token, func(token *jwt.Token) (interface{}, error) {
 
-func (u *User) Pass2Hash() (string, error) {
-	if u.Password.Valid != true {
-		return "", errors.New("password empty")
-	}
-	p := u.Password.String
-	salt, err := CreateSalt()
-	if err != nil {
-		return "", err
-	}
-	u.CryptedPassword.Scan(Pass2Hash(p, salt))
-	return salt, nil
-}
-
-func CreateSalt() (string, error) {
-	b := make([]byte, 14)
-	_, err := rand.Read(b)
-	if err != nil {
-		return "", err
-	}
-	salt := base64.StdEncoding.EncodeToString(b)
-	return salt, nil
-}
-
-func Pass2Hash(s, salt string) string {
-	c, _ := scrypt.Key([]byte(s), []byte(salt), 16384, 8, 1, 32)
-	return hex.EncodeToString(c[:])
-}
-
-func Auth(token string) (int, error) {
-	pt, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+		// convert token parameter to map[string]interface{}
 		tk, ok := token.Claims.(jwt.MapClaims)
 		if ok != true {
-			return nil, ErrInvalid
+			return nil, errors.Wrap(ErrInvalid, "Type convert to mapclaim error")
 		}
+
+		// get user_id from JWT
 		id, ok := tk["UserId"].(float64)
 		if ok != true {
-			return nil, ErrTypeInvalid
+			return nil, errors.Wrap(ErrTypeInvalid, "Type convert to user_id to float64")
 		}
-		s, err := SearchSaltById(int(id))
+
+		// get salt from user_id to token validation check
+		s := NewSalt(int(id), "")
+		err := s.SelectById()
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "User salt not exist: user_id: %v", int(id))
 		}
-		return []byte(s), nil
+		return []byte(s.Salt.String), nil
 	})
+
 	if err != nil {
 		return 0, err
 	}
+
+	// can parse token and invalid
 	if pt.Valid != true {
 		return 0, ErrInvalidToken
 	}
+
 	tk, ok := pt.Claims.(jwt.MapClaims)
 	if ok != true {
-		return 0, ErrInvalid
+		return 0, errors.Wrap(ErrInvalid, "Type convert to mapclaim error")
 	}
+
 	id, ok := tk["UserId"].(float64)
 	if ok != true {
 		return 0, ErrInvalid
@@ -83,7 +58,27 @@ func Auth(token string) (int, error) {
 	return int(id), nil
 }
 
-func (l *Login) Create(i int) error {
+func (l *Login) Create(b []byte) error {
+	u := &User{}
+	err := u.FromJSON(b)
+	if err != nil {
+		return errors.Wrap(err, "Invalid JSON")
+	}
+
+	// user data exist check
+	err = u.Get()
+	if err != nil {
+		return errors.Wrap(err, "User not exist")
+	}
+
+	// to get salt that generated for each user
+	i := int(u.Id.Int64)
+	s := NewSalt(i, "")
+	err = s.SelectById()
+	if err != nil {
+		return errors.Wrapf(err, "User salt not exist: user_id: %v", i)
+	}
+
 	claim := UserClaim{
 		i,
 		jwt.StandardClaims{
@@ -91,15 +86,10 @@ func (l *Login) Create(i int) error {
 		},
 	}
 
-	s, err := SearchSaltById(i)
-	if err != nil {
-		return err
-	}
-
 	jwtoken := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
-	t, err := jwtoken.SignedString([]byte(s))
+	t, err := jwtoken.SignedString([]byte(s.Salt.String))
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "JWT create error")
 	}
 
 	l.Token = t

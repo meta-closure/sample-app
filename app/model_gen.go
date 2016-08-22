@@ -1,10 +1,23 @@
 package app
 
 import (
-	"encoding/json"
+	"fmt"
+	"os"
+
+	"github.com/go-xorm/xorm"
 )
 
 type TableMapper struct{}
+
+func InitDb() *xorm.Engine {
+	engine, err := xorm.NewEngine("mysql", "root:@/test")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	engine.SetMapper(TableMapper{})
+	return engine
+}
 
 func (t TableMapper) Obj2Table(s string) string {
 	switch s {
@@ -30,52 +43,4 @@ func (t TableMapper) Table2Obj(s string) string {
 	default:
 		return "empty"
 	}
-}
-
-func (m *User) ToJSON() ([]byte, error) {
-	b, err := json.Marshal(m)
-	if err != nil {
-		return nil, err
-	}
-	return b, err
-}
-
-func (m *Post) ToJSON() ([]byte, error) {
-	b, err := json.Marshal(m)
-	if err != nil {
-		return nil, err
-	}
-	return b, err
-}
-
-func (m *User) FromJSON(b []byte) error {
-	err := json.Unmarshal(b, m)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (m *Post) FromJSON(b []byte) error {
-	err := json.Unmarshal(b, m)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (m *Posts) FromJSON(b []byte) error {
-	err := json.Unmarshal(b, m)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (m *Posts) ToJSON() ([]byte, error) {
-	b, err := json.Marshal(m)
-	if err != nil {
-		return nil, err
-	}
-	return b, err
 }
