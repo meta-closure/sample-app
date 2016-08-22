@@ -33,6 +33,10 @@ func cli() int {
 }
 
 func server(p string) {
-	log.Infof("Server start running with Port%s", p)
+	if p != "" {
+		log.Infof("Server start running with Port%s", p)
+	} else {
+		log.Info("Server start running with Port:8080")
+	}
 	app.Run(p)
 }
