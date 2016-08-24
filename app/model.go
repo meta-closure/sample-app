@@ -30,14 +30,15 @@ func NewPosts() *Posts {
 }
 
 func NewPost(b []byte) (*Post, error) {
-	now := time.Time{}.Unix()
+
 	post := &Post{}
 	err := post.FromJSON(b)
 	if err != nil {
 		return post, err
 	}
-	post.CreatedAt.Scan(now)
-	post.UpdatedAt.Scan(now)
+	
+	post.CreatedAt.Scan(time.Now().Unix())
+	post.UpdatedAt.Scan(time.Now().Unix())
 
 	return post, nil
 }
@@ -94,7 +95,7 @@ func (u *User) Get() error {
 	return nil
 }
 
-func (p *Post) SelectById(id string) error {
+func (p *Post) SelectById(id int) error {
 	_, err := engine.Where("id=?", id).Get(p)
 	if err != nil {
 		return err
@@ -102,15 +103,18 @@ func (p *Post) SelectById(id string) error {
 	return nil
 }
 
-func (p *Posts) SelectByPage(j int) error {
-	p.Page.Scan(j)
-	pl := &[]Post{}
-	st, ed := 1, 10
-	err := engine.Where("id between ? and ?", st, ed).Find(pl)
+func (p *Posts) SelectByQuery(q Query) error {
+	ps := &[]Post{}
+	var err error
+	if q.Order == "ASC" {
+		err = engine.Where("created_at<?", q.Time).Limit(q.Time).Asc("created_at").Find(ps)
+	} else {
+		err = engine.Where("created_at<?", q.Time).Limit(q.Time).Desc("created_at").Find(ps)
+	}
 	if err != nil {
 		return err
 	}
-	p.PostList = *pl
+	p.PostList = *ps
 	return nil
 }
 

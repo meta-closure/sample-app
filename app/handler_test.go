@@ -9,6 +9,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"golang.org/x/net/context"
+
 	"github.com/pkg/errors"
 )
 
@@ -19,22 +21,14 @@ type TestCase struct {
 	Pass    bool
 }
 
-func WrapGetPostHandler(w http.ResponseWriter, r *http.Request) {
-	p := map[string]string{
-		"post_id": "1",
-	}
-	GetPostHandler(w, r, p)
+type TestHandleWrapper struct {
+	handler func(http.ResponseWriter, *http.Request, context.Context)
 }
 
-func WrapPostPostHandler(w http.ResponseWriter, r *http.Request) {
-	p := map[string]string{
-		"auth_user_id": "3",
-	}
-	PostPostHandler(w, r, p)
-}
-
-func WrapUserPostHandler(w http.ResponseWriter, r *http.Request) {
-	PostUserHandler(w, r)
+func (t TestHandleWrapper) WrapHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, "user_id", 3)
+	t.handler(w, r, ctx)
 }
 
 func EncodeJSON(p map[string]interface{}) (io.Reader, error) {
@@ -49,9 +43,9 @@ func EncodeJSON(p map[string]interface{}) (io.Reader, error) {
 
 func SetupMux() *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/users", WrapUserPostHandler)
-	mux.HandleFunc("/posts/1", WrapGetPostHandler)
-	mux.HandleFunc("/posts", WrapPostPostHandler)
+	mux.HandleFunc("/users", PostUserHandler)
+	mux.HandleFunc("/posts/1", TestHandleWrapper{handler: GetPostHandler}.WrapHandler)
+	mux.HandleFunc("/posts", TestHandleWrapper{handler: PostPostHandler}.WrapHandler)
 
 	return mux
 }

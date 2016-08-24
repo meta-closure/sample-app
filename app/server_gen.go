@@ -6,6 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
+	"golang.org/x/net/context"
 )
 
 var (
@@ -13,116 +14,30 @@ var (
 	ErrEmptyToken   = errors.New("auth token is empty")
 )
 
-type GetHock struct {
-	handler   func(http.ResponseWriter, *http.Request, map[string]string)
+type AuthHock struct {
+	handler   func(http.ResponseWriter, *http.Request, context.Context)
 	validater func(map[string]string) bool
 }
 
-type PostHock struct {
-	handler   func(http.ResponseWriter, *http.Request, map[string]string)
-	validater func(map[string]string) bool
-}
-
-type DeleteHock struct {
-	handler   func(http.ResponseWriter, *http.Request, map[string]string)
-	validater func(map[string]string) bool
-}
-
-type PutHock struct {
-	handler   func(http.ResponseWriter, *http.Request, map[string]string)
-	validater func(map[string]string) bool
-}
-
-func (g GetHock) GetHandler(w http.ResponseWriter, r *http.Request) {
+func (p AuthHock) AuthHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
 	token := r.Header.Get("Authorization")
-	if token == "" {
-		Failed(&w, r, 401, ErrEmptyToken)
-		return
+	if token != "" {
+
+		l := NewLogin(token)
+		id, err := l.Auth()
+		if err != nil {
+			Failed(&w, r, 401, ErrInvalidToken)
+			return
+		}
+		ctx = context.WithValue(ctx, "user_id", id)
 	}
 
-	l := NewLogin(token)
-	id, err := l.Auth()
-	if err != nil {
-		Failed(&w, r, 401, err)
-		return
-	}
-
-	payload := mux.Vars(r)
-	ok := g.validater(payload)
-	if ok != true {
-
-	}
-
-	payload["auth_user_id"] = string(id)
-	g.handler(w, r, payload)
+	p.handler(w, r, ctx)
 	return
 }
 
-func (p PostHock) PostHandler(w http.ResponseWriter, r *http.Request) {
-	token := r.Header.Get("Authorization")
-	if token == "" {
-		Failed(&w, r, 401, ErrEmptyToken)
-		return
-	}
-
-	l := NewLogin(token)
-	id, err := l.Auth()
-	if err != nil {
-		Failed(&w, r, 401, ErrInvalidToken)
-		return
-	}
-
-	payload := map[string]string{
-		"auth_user_id": string(id),
-	}
-
-	p.handler(w, r, payload)
-	return
-}
-
-func (p PutHock) PutHandler(w http.ResponseWriter, r *http.Request) {
-	token := r.Header.Get("Authorization")
-	if token == "" {
-		Failed(&w, r, 401, ErrEmptyToken)
-		return
-	}
-
-	l := NewLogin(token)
-	id, err := l.Auth()
-	if err != nil {
-		Failed(&w, r, 401, ErrInvalidToken)
-		return
-	}
-
-	payload := map[string]string{
-		"auth_user_id": string(id),
-	}
-	p.handler(w, r, payload)
-	return
-}
-
-func (p DeleteHock) DeleteHandler(w http.ResponseWriter, r *http.Request) {
-	token := r.Header.Get("Authorization")
-	if token == "" {
-		Failed(&w, r, 401, ErrEmptyToken)
-		return
-	}
-
-	l := NewLogin(token)
-	id, err := l.Auth()
-	if err != nil {
-		Failed(&w, r, 401, ErrInvalidToken)
-		return
-	}
-
-	payload := map[string]string{
-		"auth_user_id": string(id),
-	}
-	p.handler(w, r, payload)
-	return
-}
-
-func CreateTokenHandler(w http.ResponseWriter, r *http.Request) {
+func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	l := NewLogin("")
 	b, err := ioutil.ReadAll(r.Body)
@@ -146,10 +61,10 @@ func NoCheck(map[string]string) bool {
 
 func (s *Server) SetupRoutes() {
 	r := s.Router
-	r.HandleFunc("/posts", GetHock{handler: GetPostsHandler, validater: NoCheck}.GetHandler).Methods("GET")
-	r.HandleFunc("/posts/{post_id}", GetHock{handler: GetPostHandler, validater: NoCheck}.GetHandler).Methods("GET")
-	r.HandleFunc("/posts", PostHock{handler: PostPostHandler, validater: NoCheck}.PostHandler).Methods("POST")
-	r.HandleFunc("/login", CreateTokenHandler).Methods("POST")
+	r.HandleFunc("/posts", AuthHock{handler: GetPostsHandler}.AuthHandler).Methods("GET")
+	r.HandleFunc("/posts/{post_id}", AuthHock{handler: GetPostHandler}.AuthHandler).Methods("GET")
+	r.HandleFunc("/posts", AuthHock{handler: PostPostHandler}.AuthHandler).Methods("POST")
+	r.HandleFunc("/login", LoginHandler).Methods("POST")
 	r.HandleFunc("/users", PostUserHandler).Methods("POST")
 }
 

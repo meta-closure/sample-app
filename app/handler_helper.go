@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/scrypt"
@@ -21,16 +23,53 @@ type Message struct {
 	Error string `json:"error"`
 }
 
-func Query(r *http.Request) (map[string][]string, error) {
+type Query struct {
+	Item  int
+	Time  int
+	Order string
+}
+
+func NewQuery() Query {
+	return Query{
+		Item:  10,
+		Time:  int(time.Now().Unix()),
+		Order: "ASC",
+	}
+}
+
+func ParseQuery(r *http.Request) (Query, error) {
+	query := NewQuery()
+
 	u, err := url.Parse(r.RequestURI)
 	if err != nil {
-		return nil, err
+		return query, err
 	}
-	j, err := url.ParseQuery(u.RawQuery)
+
+	q, err := url.ParseQuery(u.RawQuery)
 	if err != nil {
-		return nil, err
+		return query, err
 	}
-	return j, nil
+
+	if q["item"] != nil {
+		i, err := strconv.Atoi(q["item"][0])
+		if err == nil {
+			query.Item = i
+		}
+	}
+	if q["time"] != nil {
+		t, err := strconv.Atoi(q["time"][0])
+		if err == nil {
+			query.Time = t
+		}
+	}
+
+	if q["sort"] != nil {
+		if q["sort"][0] != "desc" {
+			query.Order = "DESC"
+		}
+	}
+
+	return query, nil
 }
 
 func NewLogin(t string) *Login {

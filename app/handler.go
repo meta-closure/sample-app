@@ -3,15 +3,32 @@ package app
 import (
 	"io/ioutil"
 	"net/http"
-	"strconv"
+
+	"golang.org/x/net/context"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pkg/errors"
 )
 
-func GetPostHandler(w http.ResponseWriter, r *http.Request, p map[string]string) {
+var (
+	ErrInvalidId   = errors.New("invalid user_id request")
+	ErrInvalidAuth = errors.New("authorization failed")
+)
+
+func GetPostHandler(w http.ResponseWriter, r *http.Request, ctx context.Context) {
 	post := &Post{}
-	err := post.SelectById(p["post_id"])
+	if ctx.Value("user_id") == nil {
+		Failed(&w, r, 401, ErrInvalidAuth)
+		return
+	}
+
+	id, ok := ctx.Value("user_id").(int)
+	if ok != true {
+		Failed(&w, r, 401, ErrInvalidAuth)
+		return
+	}
+
+	err := post.SelectById(id)
 	if err != nil {
 		Failed(&w, r, 400, err)
 		return
@@ -25,33 +42,31 @@ func GetPostHandler(w http.ResponseWriter, r *http.Request, p map[string]string)
 	return
 }
 
-func GetPostsHandler(w http.ResponseWriter, r *http.Request, p map[string]string) {
-	query, err := Query(r)
-	var j int
+func GetPostsHandler(w http.ResponseWriter, r *http.Request, ctx context.Context) {
+	if ctx.Value("user_id") == nil {
+		Failed(&w, r, 401, ErrInvalidAuth)
+		return
+	}
+
+	q, err := ParseQuery(r)
 	if err != nil {
 		Failed(&w, r, 400, err)
 		return
 	}
-	if query["page"] == nil {
-		j = 1
-	} else {
-		j, err = strconv.Atoi(query["page"][0])
-		if err != nil {
-			Failed(&w, r, 400, err)
-			return
-		}
-	}
+
 	posts := NewPosts()
-	err = posts.SelectByPage(j)
+	err = posts.SelectByQuery(q)
 	if err != nil {
 		Failed(&w, r, 400, err)
 		return
 	}
+
 	b, err := posts.ToJSON()
 	if err != nil {
 		Failed(&w, r, 400, err)
 		return
 	}
+
 	Success(&w, r, nil, b)
 	return
 }
@@ -87,7 +102,18 @@ func PostUserHandler(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func PostPostHandler(w http.ResponseWriter, r *http.Request, p map[string]string) {
+func PostPostHandler(w http.ResponseWriter, r *http.Request, ctx context.Context) {
+	if ctx.Value("user_id") == nil {
+		Failed(&w, r, 401, ErrInvalidAuth)
+		return
+	}
+
+	id, ok := ctx.Value("user_id").(int)
+	if ok != true {
+		Failed(&w, r, 401, ErrInvalidAuth)
+		return
+	}
+
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		Failed(&w, r, 400, err)
@@ -101,9 +127,8 @@ func PostPostHandler(w http.ResponseWriter, r *http.Request, p map[string]string
 	}
 
 	// check request user id is user id
-	i, _ := strconv.Atoi(p["auth_user_id"])
-	if i != int(post.UserId.Int64) {
-		Failed(&w, r, 400, errors.New("User id not exist"))
+	if id != int(post.UserId.Int64) {
+		Failed(&w, r, 400, ErrInvalidId)
 		return
 	}
 
