@@ -15,7 +15,6 @@ func GetPostHandler(w http.ResponseWriter, r *http.Request, p map[string]string)
 	if err != nil {
 		Failed(&w, r, 400, err)
 		return
-
 	}
 	b, err := post.ToJSON()
 	if err != nil {

@@ -24,7 +24,7 @@ type UserClaim struct {
 
 */
 
-func (l Login) Auth() (int, error) {
+func (l *Login) Auth() (int, error) {
 	pt, err := jwt.Parse(l.Token, func(token *jwt.Token) (interface{}, error) {
 
 		// convert token parameter to map[string]interface{}
@@ -40,8 +40,8 @@ func (l Login) Auth() (int, error) {
 		}
 
 		// get salt from user_id to token validation check
-		s := NewSalt(int(id), "")
-		err := s.SelectById()
+		s := &Salt{}
+		err := s.SelectById(int(id))
 		if err != nil {
 			return nil, errors.Wrapf(err, "User salt not exist: user_id: %v", int(id))
 		}
@@ -84,8 +84,8 @@ func (l *Login) Create(b []byte) error {
 
 	// to get salt that generated for each user
 	i := int(u.Id.Int64)
-	s := NewSalt(i, "")
-	err = s.SelectById()
+	s := &Salt{}
+	err = s.SelectById(i)
 	if err != nil {
 		return errors.Wrapf(err, "User salt not exist: user_id: %v", i)
 	}

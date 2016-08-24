@@ -123,8 +123,8 @@ func (p DeleteHock) DeleteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateTokenHandler(w http.ResponseWriter, r *http.Request) {
-	l := NewLogin("")
 
+	l := NewLogin("")
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		l.Failed(&w, r, b, err)

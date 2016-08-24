@@ -55,8 +55,8 @@ func NewUser(b []byte) (*User, error) {
 	return user, nil
 }
 
-func (s *Salt) SelectById() error {
-	ok, err := engine.Where("user_id=?", int(s.UserId.Int64)).Get(s)
+func (s *Salt) SelectById(i int) error {
+	ok, err := engine.Where("user_id=?", i).Get(s)
 	if err != nil {
 		return err
 	}
@@ -78,11 +78,11 @@ func (u *User) Select() error {
 }
 
 func (u *User) Get() error {
-	if u.Password.Valid {
+	if u.Password.Valid != true {
 		return errors.Wrap(ErrEmpty, "Password")
 	}
 
-	if u.Id.Valid {
+	if u.Id.Valid != true {
 		return errors.Wrap(ErrEmpty, "id")
 	}
 
