@@ -41,7 +41,7 @@ func (l *Login) Auth() (int, error) {
 
 		// get salt from user_id to token validation check
 		s := &Salt{}
-		err := s.SelectById(int(id))
+		err := s.SelectByUserId(int(id))
 		if err != nil {
 			return nil, errors.Wrapf(err, "User salt not exist: user_id: %v", int(id))
 		}
@@ -85,7 +85,7 @@ func (l *Login) Create(b []byte) error {
 	// to get salt that generated for each user
 	i := int(u.Id.Int64)
 	s := &Salt{}
-	err = s.SelectById(i)
+	err = s.SelectByUserId(i)
 	if err != nil {
 		return errors.Wrapf(err, "User salt not exist: user_id: %v", i)
 	}

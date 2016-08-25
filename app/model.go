@@ -1,9 +1,6 @@
 package app
 
 import (
-	"fmt"
-	"time"
-
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/pkg/errors"
@@ -17,66 +14,6 @@ var (
 	ErrInvalid         = errors.New("parameter invalid")
 	ErrEmpty           = errors.New("record is empty")
 )
-
-func NewSalt(i int, salt string) *Salt {
-	s := &Salt{}
-	s.Salt.Scan(salt)
-	s.UserId.Scan(i)
-	return s
-}
-
-func NewPosts() *Posts {
-	return &Posts{}
-}
-
-func NewPost(b []byte) (*Post, error) {
-
-	post := &Post{}
-	err := post.FromJSON(b)
-	if err != nil {
-		return post, err
-	}
-
-	post.CreatedAt.Scan(time.Now().Unix())
-	post.UpdatedAt.Scan(time.Now().Unix())
-
-	return post, nil
-}
-
-func NewUser(b []byte) (*User, error) {
-	now := time.Time{}.Unix()
-	user := &User{}
-	err := user.FromJSON(b)
-	if err != nil {
-		return user, err
-	}
-	user.CreatedAt.Scan(now)
-	user.UpdatedAt.Scan(now)
-
-	return user, nil
-}
-
-func (s *Salt) SelectById(i int) error {
-	ok, err := engine.Where("user_id=?", i).Get(s)
-	if err != nil {
-		return err
-	}
-	if ok != true {
-		return ErrEmpty
-	}
-	return nil
-}
-
-func (u *User) Select() error {
-	ok, err := engine.Get(u)
-	if err != nil {
-		return err
-	}
-	if ok != true {
-		return ErrEmpty
-	}
-	return nil
-}
 
 func (u *User) Get() error {
 	if u.Password.Valid != true {
@@ -95,75 +32,132 @@ func (u *User) Get() error {
 	return nil
 }
 
-func (p *Post) SelectById(id int) error {
-	_, err := engine.Where("id=?", id).Get(p)
+func (p *Post) SelectByPostId(pid int) error {
+	ok, err := engine.Where("id=?", pid).Get(p)
 	if err != nil {
 		return err
+	}
+
+	if ok != true {
+		return ErrInvalidPostId
 	}
 	return nil
 }
 
-func (p *Posts) SelectByQuery(q Query) error {
-	ps := &[]Post{}
+func (s *Salt) SelectByUserId(uid int) error {
+	ok, err := engine.Where("user_id=?", uid).Get(s)
+	if err != nil {
+		return err
+	}
+
+	if ok != true {
+		return ErrInvalidUserId
+	}
+
+	return nil
+}
+
+func (u *User) SelectByUserId(uid int) error {
+	ok, err := engine.Where("id=?", uid).Get(u)
+	if err != nil {
+		return err
+	}
+
+	if ok != true {
+		return ErrInvalidUserId
+	}
+	return nil
+}
+
+func (c *Circle) SelectByCircleId(cid int) error {
+	ok, err := engine.Where("id=?", cid).Get(c)
+	if err != nil {
+		return err
+	}
+
+	if ok != true {
+		return ErrInvalidCircleId
+	}
+	return nil
+}
+
+func (u *UserList) Select(q Query) error {
+	us := NewUserList()
 	var err error
 	if q.Order == "asc" {
-		err = engine.Where("created_at<?", q.Time).Limit(q.Time).Asc("created_at").Find(ps)
+		err = engine.Where("created_at<?", q.Time).Limit(q.Item).Asc("created_at").Find(us)
 	} else {
-		err = engine.Where("created_at<?", q.Time).Limit(q.Time).Desc("created_at").Find(ps)
-	}
-	if err != nil {
-		return err
-	}
-	p.PostList = *ps
-	return nil
-}
-
-func (p *Post) Insert() error {
-	_, err := engine.Insert(p)
-	if err != nil {
-		return err
+		err = engine.Where("created_at<?", q.Time).Limit(q.Item).Desc("created_at").Find(us)
 	}
 
-	_, err = engine.Get(p)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (u *User) Insert() error {
-	_, err := engine.Insert(u)
+func (c *CircleList) Select(q Query) error {
+	var cs *[]Circle
+	var err error
+	if q.Order == "asc" {
+		err = engine.Where("created_at<?", q.Time).Limit(q.Item).Asc("created_at").Find(cs)
+	} else {
+		err = engine.Where("created_at<?", q.Time).Limit(q.Item).Desc("created_at").Find(cs)
+	}
+
 	if err != nil {
 		return err
 	}
-	_, err = engine.Get(u)
+
+	var js *[]Join
+	var us *[]User
+	for i, circle := range *cs {
+		err = engine.Where("circle_id=?", circle.Id.Int64).Limit(q.Item).Desc("created_at").Find(us)
+		if err != nil {
+			return err
+		}
+		ids := []int{}
+		for _, j := range *js {
+			ids = append(ids, int(j.UserId.Int64))
+		}
+
+		err = engine.In("id", ids).Find(us)
+		if err != nil {
+			return err
+		}
+
+		(*cs)[i].JoinedBy = *us
+	}
+
+	return nil
+}
+
+func (p *PostList) SelectByCircleId(cid int, q Query) error {
+	ps := NewPostList()
+	var err error
+	if q.Order == "asc" {
+		err = engine.Where("created_at<?", q.Time).And("circle_id=?", cid).Limit(q.Item).Join("INNER", "users", "users.id=posts.user_id").Asc("created_at").Find(ps)
+	} else {
+		err = engine.Where("created_at<?", q.Time).And("circle_id=?", cid).Limit(q.Item).Join("INNER", "users", "users.id=posts.user_id").Desc("created_at").Find(ps)
+	}
+
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (m *Salt) Insert() error {
-	fmt.Println(m)
-	_, err := engine.Insert(m)
+func (p *PostList) SelectByUserId(uid int, q Query) error {
+	ps := NewPostList()
+	var err error
+	if q.Order == "asc" {
+		err = engine.Where("created_at<?", q.Time).Limit(q.Item).Asc("created_at").Find(ps)
+	} else {
+		err = engine.Where("created_at<?", q.Time).Limit(q.Item).Desc("created_at").Find(ps)
+	}
+
 	if err != nil {
 		return err
 	}
-	return nil
-}
-
-func (p *Post) Update() error {
-	return nil
-}
-
-func (u *User) Update() error {
-	return nil
-}
-
-func (p *Post) Delete() error {
-	return nil
-}
-
-func (u *User) Delete() error {
 	return nil
 }

@@ -23,13 +23,13 @@ func GETCircleListHandler(w http.ResponseWriter, r *http.Request, ctx context.Co
 	query, _ := ParseQuery(r)
 
 	circles := NewCircleList()
-	err := circles.SelectByQuery(query)
+	err := circles.Select(query)
 	if err != nil {
 		Failed(&w, r, 400, ErrInvalidRequest)
 		return
 	}
 
-	b, err = circles.ToJSON()
+	b, err := circles.ToJSON()
 	if err != nil {
 		Failed(&w, r, 400, ErrInvalidRequest)
 		return
@@ -51,7 +51,7 @@ func GETCircleHandler(w http.ResponseWriter, r *http.Request, ctx context.Contex
 		Failed(&w, r, 400, ErrInvalidCircleId)
 		return
 	}
-	b, err := circle.ToJSON
+	b, err := circle.ToJSON()
 	if err != nil {
 		Failed(&w, r, 400, ErrInvalidRequest)
 		return
@@ -66,8 +66,10 @@ func GETCirclePostListHandler(w http.ResponseWriter, r *http.Request, ctx contex
 		return
 	}
 
+	query, _ := ParseQuery(r)
+
 	posts := NewPostList()
-	err = posts.SelectByCircleId(param.CircleId)
+	err = posts.SelectByCircleId(param.CircleId, query)
 	if err != nil {
 		Failed(&w, r, 400, ErrInvalidCircleId)
 		return
@@ -95,7 +97,7 @@ func GETMeHandler(w http.ResponseWriter, r *http.Request, ctx context.Context) {
 	}
 
 	user := NewUser()
-	err := user.SelectById(uid)
+	err := user.SelectByUserId(uid)
 	if err != nil {
 		Failed(&w, r, 400, ErrInvalidUserId)
 		return
@@ -113,15 +115,15 @@ func GETMeHandler(w http.ResponseWriter, r *http.Request, ctx context.Context) {
 
 func GETUserListHandler(w http.ResponseWriter, r *http.Request, ctx context.Context) {
 	query, _ := ParseQuery(r)
-
 	users := NewUserList()
-	err := users.SelectByQuery(query)
+
+	err := users.Select(query)
 	if err != nil {
 		Failed(&w, r, 400, ErrInvalidRequest)
 		return
 	}
 
-	b, err := users.ToJSON
+	b, err := users.ToJSON()
 	if err != nil {
 		Failed(&w, r, 400, ErrInvalidRequest)
 		return
@@ -161,8 +163,10 @@ func GETUserPostListHandler(w http.ResponseWriter, r *http.Request, ctx context.
 		return
 	}
 
+	query, _ := ParseQuery(r)
 	posts := NewPostList()
-	err = posts.SelectByUserId(param.UserId)
+
+	err = posts.SelectByUserId(param.UserId, query)
 	if err != nil && param.UserId == -1 {
 		Failed(&w, r, 400, ErrInvalidUserId)
 		return
@@ -186,7 +190,8 @@ func GETPostHandler(w http.ResponseWriter, r *http.Request, ctx context.Context)
 	}
 
 	post := NewPost()
-	err = posts.SelectByPostId(param.UserId)
+
+	err = post.SelectByPostId(param.PostId)
 	if err != nil && param.UserId == -1 {
 		Failed(&w, r, 400, ErrInvalidPostId)
 		return
@@ -202,62 +207,7 @@ func GETPostHandler(w http.ResponseWriter, r *http.Request, ctx context.Context)
 	return
 }
 
-func GetPostHandler(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	post := &Post{}
-	if ctx.Value("user_id") == nil {
-		Failed(&w, r, 401, ErrInvalidAuth)
-		return
-	}
-
-	id, ok := ctx.Value("user_id").(int)
-	if ok != true {
-		Failed(&w, r, 401, ErrInvalidAuth)
-		return
-	}
-
-	err := post.SelectById(id)
-	if err != nil {
-		Failed(&w, r, 400, err)
-		return
-	}
-	b, err := post.ToJSON()
-	if err != nil {
-		Failed(&w, r, 400, err)
-		return
-	}
-	Success(&w, r, nil, b)
-	return
-}
-
-func GetPostsHandler(w http.ResponseWriter, r *http.Request, ctx context.Context) {
-	if ctx.Value("user_id") == nil {
-		Failed(&w, r, 401, ErrInvalidAuth)
-		return
-	}
-
-	q, err := ParseQuery(r)
-	if err != nil {
-		Failed(&w, r, 400, err)
-		return
-	}
-
-	posts := NewPosts()
-	err = posts.SelectByQuery(q)
-	if err != nil {
-		Failed(&w, r, 400, err)
-		return
-	}
-
-	b, err := posts.ToJSON()
-	if err != nil {
-		Failed(&w, r, 400, err)
-		return
-	}
-
-	Success(&w, r, nil, b)
-	return
-}
-
+// old
 func PostUserHandler(w http.ResponseWriter, r *http.Request) {
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -265,7 +215,8 @@ func PostUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := NewUser(buf)
+	user := NewUser()
+	err = user.FromJSON(buf)
 	if err != nil {
 		Failed(&w, r, 400, err)
 		return
@@ -289,6 +240,7 @@ func PostUserHandler(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+// old
 func PostPostHandler(w http.ResponseWriter, r *http.Request, ctx context.Context) {
 	if ctx.Value("user_id") == nil {
 		Failed(&w, r, 401, ErrInvalidAuth)
@@ -307,7 +259,8 @@ func PostPostHandler(w http.ResponseWriter, r *http.Request, ctx context.Context
 		return
 	}
 
-	post, err := NewPost(buf)
+	post := NewPost()
+	err = post.FromJSON(buf)
 	if err != nil {
 		Failed(&w, r, 400, err)
 		return
@@ -315,7 +268,7 @@ func PostPostHandler(w http.ResponseWriter, r *http.Request, ctx context.Context
 
 	// check request user id is user id
 	if id != int(post.UserId.Int64) {
-		Failed(&w, r, 400, ErrInvalidId)
+		Failed(&w, r, 400, ErrInvalidPostId)
 		return
 	}
 

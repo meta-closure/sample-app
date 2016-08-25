@@ -49,11 +49,11 @@ func (m Post) Valid(p map[string]string) error {
 
 func (m User) Valid(p map[string]string) error {
 
-	if m.ScreenName.Valid != true {
+	if m.Name.Valid != true {
 		return ErrInvalid
 	} else {
-		screenname := m.ScreenName.String
-		if len(screenname) > 255 {
+		name := m.Name.String
+		if len(name) > 255 {
 			return errors.New("invalid tscreenname too long")
 		}
 	}
@@ -97,6 +97,6 @@ func (m User) Valid(p map[string]string) error {
 	return nil
 }
 
-func (m Posts) Valid() error {
+func (m PostList) Valid() error {
 	return nil
 }

@@ -24,10 +24,10 @@ func (p AuthHock) AuthHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.Header.Get("Authorization")
 	if token != "" {
 
-		l := NewLogin(token)
-		id, err := l.Auth()
+		login := NewLogin(token)
+		id, err := login.Auth()
 		if err != nil {
-			Failed(&w, r, 401, ErrInvalidToken)
+			Failed(&w, r, 400, ErrInvalidToken)
 			return
 		}
 		ctx = context.WithValue(ctx, "user_id", id)
@@ -39,19 +39,19 @@ func (p AuthHock) AuthHandler(w http.ResponseWriter, r *http.Request) {
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
-	l := NewLogin("")
+	login := NewLogin("")
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		l.Failed(&w, r, b, err)
+		login.Failed(&w, r, b, err)
 	}
 
-	err = l.Create(b)
+	err = login.Create(b)
 	if err != nil {
-		l.Failed(&w, r, b, errors.Wrap(err, "Failed to create token"))
+		login.Failed(&w, r, b, errors.Wrap(err, "Failed to create token"))
 		return
 	}
 
-	l.Success(&w, r, b)
+	login.Success(&w, r, b)
 	return
 }
 
