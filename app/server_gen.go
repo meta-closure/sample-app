@@ -61,11 +61,14 @@ func NoCheck(map[string]string) bool {
 
 func (s *Server) SetupRoutes() {
 	r := s.Router
-	r.HandleFunc("/posts", AuthHock{handler: GetPostsHandler}.AuthHandler).Methods("GET")
-	r.HandleFunc("/posts/{post_id}", AuthHock{handler: GetPostHandler}.AuthHandler).Methods("GET")
-	r.HandleFunc("/posts", AuthHock{handler: PostPostHandler}.AuthHandler).Methods("POST")
-	r.HandleFunc("/login", LoginHandler).Methods("POST")
-	r.HandleFunc("/users", PostUserHandler).Methods("POST")
+	r.HandleFunc("/api/circles", AuthHock{handler: GETCircleListHandler}.AuthHandler).Methods("GET")
+	r.HandleFunc("/api/circles/{circle_id}", AuthHock{handler: GETCircleHandler}.AuthHandler).Methods("GET")
+	r.HandleFunc("/api/circles/{circle_id}/posts", AuthHock{handler: GETCirclePostListHandler}.AuthHandler).Methods("GET")
+	r.HandleFunc("/api/posts/{post_id}", AuthHock{handler: GETPostHandler}.AuthHandler).Methods("GET")
+	r.HandleFunc("/api/me", AuthHock{handler: GETMeHandler}.AuthHandler).Methods("GET")
+	r.HandleFunc("/api/users", AuthHock{handler: GETUserListHandler}.AuthHandler).Methods("GET")
+	r.HandleFunc("/api/users/{user_id}", AuthHock{handler: GETUserHandler}.AuthHandler).Methods("GET")
+	r.HandleFunc("/api/users/{user_id}/posts", AuthHock{handler: GETUserPostListHandler}.AuthHandler).Methods("GET")
 }
 
 type Server struct {

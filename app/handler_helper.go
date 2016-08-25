@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/scrypt"
 )
@@ -29,12 +30,57 @@ type Query struct {
 	Order string
 }
 
+type UrlParam struct {
+	CircleId int
+	UserId   int
+	PostId   int
+}
+
+// if params in not given, then -1 setted. this is empty symbol
+func NewUrlParam() UrlParam {
+	return UrlParam{
+		CircleId: -1,
+		UserId:   -1,
+		PostId:   -1,
+	}
+}
 func NewQuery() Query {
 	return Query{
 		Item:  10,
 		Time:  int(time.Now().Unix()),
-		Order: "ASC",
+		Order: "asc",
 	}
+}
+
+func ParseUrlParameter(r *http.Request) (UrlParam, error) {
+	param := NewUrlParam()
+
+	vars := mux.Vars(r)
+	if vars["circle_id"] != "" {
+		cid, err := strconv.Atoi(vars["circle_id"])
+		if err != nil {
+			return param, err
+		}
+		param.CircleId = cid
+	}
+
+	if vars["user_id"] != "" {
+		uid, err := strconv.Atoi(vars["user_id"])
+		if err != nil {
+			return param, err
+		}
+		param.UserId = uid
+	}
+
+	if vars["post_id"] != "" {
+		pid, err := strconv.Atoi(vars["post_id"])
+		if err != nil {
+			return param, err
+		}
+		param.PostId = pid
+	}
+
+	return param, nil
 }
 
 func ParseQuery(r *http.Request) (Query, error) {
@@ -65,7 +111,7 @@ func ParseQuery(r *http.Request) (Query, error) {
 
 	if q["sort"] != nil {
 		if q["sort"][0] != "desc" {
-			query.Order = "DESC"
+			query.Order = "desc"
 		}
 	}
 

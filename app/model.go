@@ -36,7 +36,7 @@ func NewPost(b []byte) (*Post, error) {
 	if err != nil {
 		return post, err
 	}
-	
+
 	post.CreatedAt.Scan(time.Now().Unix())
 	post.UpdatedAt.Scan(time.Now().Unix())
 
@@ -106,7 +106,7 @@ func (p *Post) SelectById(id int) error {
 func (p *Posts) SelectByQuery(q Query) error {
 	ps := &[]Post{}
 	var err error
-	if q.Order == "ASC" {
+	if q.Order == "asc" {
 		err = engine.Where("created_at<?", q.Time).Limit(q.Time).Asc("created_at").Find(ps)
 	} else {
 		err = engine.Where("created_at<?", q.Time).Limit(q.Time).Desc("created_at").Find(ps)
