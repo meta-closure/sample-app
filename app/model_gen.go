@@ -28,7 +28,9 @@ func (t TableMapper) Obj2Table(s string) string {
 	case "User":
 		return "users"
 	default:
-		return "empty"
+		fmt.Printf("%s' struct corresponde table is not set", s)
+		os.Exit(1)
+		return ""
 	}
 }
 
@@ -41,6 +43,8 @@ func (t TableMapper) Table2Obj(s string) string {
 	case "users":
 		return "User"
 	default:
-		return "empty"
+		fmt.Printf("%s table corresponde struct is not set", s)
+		os.Exit(1)
+		return ""
 	}
 }
