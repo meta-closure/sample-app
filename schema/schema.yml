@@ -1,21 +1,19 @@
 
 title: sample API schema
 description: sample API schema
+db:
+    user: root
+    passwd: 
+    addr: 127.0.0.1:3306
+    dbname: mig
+
 
 definitions:
     ok:
         type: boolean
         description: succeesed check
         example: true
-    
-    user_id:
-        type: string
-        description: user id
-        example: okpk
-        readOnly: true
-        unique: true
-
-    screen_name:
+    name:
         type: string
         description: user secreen name
         example: hei
@@ -33,213 +31,544 @@ definitions:
         type: string
         description: post body
         example: this is body
-    post_id:
+
+    id:
         type: integer
         description: post id
         example: 1011
         unique: true
-    page:
-        type: integer
-        description: page
-        example: 1
 
     user:
         type: object
         title: User
         description: User
+        table:
+            name: users
+            primary_key:
+                user_pk_user_id:
+                    - user_id
         properties:
             user_id:
-                $ref: '#/definitions/user_id'
-            screen_name:
-                $ref: '#/definitions/screen_name'
+                column:
+                    name: user_id
+                    not_null: true
+                    auto_increment: true
+                    type: int
+                $ref: '#/definitions/id'
+            name:
+                column:
+                    name: name
+                    not_null: true
+                    type: varchar(255)
+                $ref: '#/definitions/name'
+            name_reading:
+                column:
+                    type: varchar(255)
+                    name: name_reading
+                    not_null: true
+                $ref: '#/definitions/name'
+    
+    role:
+        type: object
+        table:
+            name: roles
+            primary_key:
+                role_pk_role_id:
+                    - role_id
+
+        properties:
+            role_id:
+                column:
+                    name: role_id
+                    type: int
+                    auto_increment: true
+            
     post:
         type: object
         title: post
         description: post
+        table:
+            name: posts
+            primary_key:
+                post_pk_post_id:
+                    - post_id
+            index:
+                post_index_communitie_id_user_id:
+                    - communitie_id
+                    - user_id
         properties:
             post_id:
-                $ref: '#/definitions/post_id'
+                column:
+                    name: post_id
+                    type: int
+                    auto_increment: true
+                $ref: '#/definitions/id'
             title:
+                column:
+                    name: title
+                    type: varchar(255)
+                    not_null: true
                 $ref: '#/definitions/title'
             body:
+                column:
+                    name: body
+                    type: varchar(255)
+                    not_null: true
                 $ref: '#/definitions/body'
+            communitie_id:
+                column:
+                    name: communitie_id
+                    type: int
+                    not_null: true
+                    foreign_key: 
+                        name: post_fk_communitie_id
+                        target_table: community
+                        target_column: communitie_id
+
+            user_id:
+                column:
+                    name: user_id
+                    type: int
+                    not_null: true
+                    foreign_key:
+                        name: post_fk_user_id
+                        target_table: user
+                        target_column: user_id
     
-    posts:
-        type: array
-        title: posts
-        description: posts
-        items:
-            $ref: '#/definitions/post'
-                    
+    post_like:
+        type: object
+        title: post_like
+        table:
+            name: post_likes
+            primary_key:
+                post_like_pk_post_id:
+                    - post_id
+        
+        properties:
+            post_id:
+                column:
+                    name: post_id
+                    type: int
+                    not_null: true
+                    foreign_key:
+                        name: post_like_fk_post_id
+                        target_table: post
+                        target_column: post_id
+            
+            user_id:
+                column:
+                    name: user_id
+                    type: int
+                    not_null: true
+                    foreign_key:
+                        name: post_like_fk_user_id
+                        target_table: user
+                        target_column: user_id           
+    event_post:
+        type: object
+        table: 
+            name: event_posts
+            primary_key:
+                event_post_pk_event_id_post_id:
+                    - event_id
+                    - post_id
+        
+        properties:
+            event_id:
+                column:
+                    name: event_id
+                    type: int
+                    not_null: true
+                    foreign_key:
+                        name: event_post_fk_event_id
+                        target_table: event
+                        target_column: event_id
 
-href: https://sample-app
-pathStart: /v1
+            post_id:
+                column:
+                    name: post_id
+                    type: int
+                    not_null: true
+                    foreign_key:
+                        name: event_post_fk_post_id
+                        target_table: post
+                        target_column: post_id
     
-links:
-    - title: CREATE user
-      description: create user
-      rel: create
-      href: /users
-      method: POST
-      schema:
-          type: object
-          properties:
-              user_id:
-                  $ref: '#/definitions/user_id'
-              screen_name:
-                  $ref: '#/definitions/screen_name'
-              password:
-                  $ref: '#/definitions/password'
-          required:
-              - user_id
-              - screen_name
-              
-      targetSchema:
-          $ref: '#/definitions/user'
-    - title: PUT user
-      description: update user
-      rel: update
-      href: /users/:user_id
-      method: PUT
-      schema:
-          type: object
-          properties:
-              screen_name:
-                  $ref: '#/definitions/screen_name'
-              password:
-                  $ref: '#/definitions/password'
-          required:
-              - screen_name
-              - password
-      targetSchema:
-          $ref: '#/definitions/user'
-    - title: DELETE user
-      description: delete user
-      rel: delete
-      href: /user/:user_id
-      method: DELETE
-      schema:
-          type: object
-          properties:
-              password:
-                  $ref: '#/definitions/password'
-          required:
-              - password
-      targetSchema:
-          $ref: '#/definitions/ok'
+    communitie_post:
+        type: object
+        table:
+            name: communitie_posts
+            primary_key:
+                communitie_post_pk_communitie_id_post_id:
+                    - communitie_id
+                    - post_id
 
-    - title: GET user
-      description: get user data
-      rel: self
-      href: /user/:user_id
-      method: GET
-      targetSchema:
-          $ref: '#/definitions/user'
+        properties:
+            post_id:
+                column:
+                    name: post_id
+                    type: int
+                    not_null: true
+                    foreign_key:
+                        name: communitie_post_fk_post_id
+                        target_table: post
+                        target_column: post_id
+        
+            communitie_id:
+                column:
+                    name: communitie_id
+                    type: int
+                    not_null: true
+                    foreign_key:
+                        name: communitie_post_fk_communitie_id
+                        target_table: community
+                        target_column: communitie_id
+  
+    comment:
+        type: object
+        title: comment
+        table:
+            name: comments
+            primary_key:
+                comment_pk_post_id:
+                    - post_id
+            index:
+                comment_pk_comment_id:
+                    - comment_id
 
-    - title: create session
-      description: create session
-      rel: create
-      href: /session
-      method: POST
-      schema:
-          type: object
-          properties:
-              user_id:
-                  $ref: '#/definitions/user_id'
-              password:
-                  $ref: '#/definitions/password'
-          required:
-              - user_id
-              - password
-      targetSchema:
-          $ref: '#/definitions/ok'
+        properties:
+            post_id:
+                column:
+                    name: post_id
+                    type: int
+                    not_null: true
+                    foreign_key:
+                        name: comment_fk_post_id
+                        target_table: post
+                        target_column: post_id
 
-    - title: DELETE session
-      description: delete session
-      rel: delete
-      href: /session
-      method: DELETE
-      schema:
-          type: object
-          properties:
-              user_id:
-                  $ref: '#/definitions/user_id'
-              password:
-                  $ref: '#/definitions/password'
-          required:
-              - user_id
-              - password
-      targetSchema:
-          $ref: '#/definitions/ok'
+            comment_id:
+                column:
+                    name: comment_id
+                    type: int
+                    not_null: true
+ 
+            comment:
+                column:
+                    name: comment
+                    type: varchar(255)
+                    not_null: true
+    
+    comment_like:
+        type: object
+        title: comment_like
+        table:
+            name: comment_likes
+            primary_key:
+                comment_like_pk_comment_id:
+                    - comment_id
+        
+        properties:
+            comment_id:
+                column:
+                    name: comment_id
+                    type: int
+                    not_null: true
+                    foreign_key:
+                        name: comment_like_fk_comment_id
+                        target_table: comment
+                        target_column: comment_id
+            
+            user_id:
+                column:
+                    name: user_id
+                    type: int
+                    not_null: true
+                    foreign_key:
+                        name: comment_like_fk_user_id
+                        target_table: user
+                        target_column: user_id
+    
 
-                      
-    - title: POST post
-      description: create post
-      rel: create
-      href: /posts
-      method: POST
-      schema:
-          type: object
-          properties:
-              title:
-                  $ref: '#/definitions/title'
-              body:
-                  $ref: '#/definitions/body'
-          required:
-              - title
-              - body
-      targetSchema:
-          $ref: '#/definitions/post'
+    community:
+        type: object
+        title: community
+        table:
+            name: communities
+            primary_key:
+                communitie_pk_communitie_id:
+                    - communitie_id
 
-    - title: DELETE post by post_id
-      description: delete post
-      rel: delete
-      href: /posts/:post_id
-      method: DELETE
-      targetSchema:
-          $ref: '#/definitions/ok'
+        properties:
+            communitie_id: 
+                column:
+                    name: communitie_id
+                    type: int
+                    not_null: true
+            
+    communitie_like:
+        type: object
+        title: communitie_like
+        table:
+            name: communitie_likes
+            primary_key:
+                communitie_like_pk_communitie_id:
+                    - communitie_id
+        
+        properties:
+            communitie_id:
+                column:
+                    name: communitie_id
+                    type: int
+                    not_null: true
+                    foreign_key:
+                        name: communitie_like_fk_communitie_id
+                        target_table: community
+                        target_column: communitie_id
+            
+            user_id:
+                column:
+                    name: user_id
+                    type: int
+                    not_null: true
+                    foreign_key:
+                        name: communitie_like_fk_user_id
+                        target_table: user
+                        target_column: user_id 
+    communitie_user:
+        type: object
+        table:
+            name: communitie_users
+            primary_key:
+                communitie_user_pk_communitie_id_user_id:
+                    - communitie_id
+                    - user_id
 
+            index:
+                communitie_user_fk_communitie_user_id:
+                    - communitie_user_id
 
-    - title: PUT post by post_id
-      description: update post
-      rel: put
-      href: /posts/:post_id
-      method: PUT
-      schema:
-          type: object
-          properties:
-              title:
-                  $ref: '#/definitions/title'
-              body:
-                  $ref: '#/definitions/body'
-          required:
-              - title
-              - body
-      targetSchema:
-          $ref: '#/definitions/post'
+        properties:
+            communitie_user_id:
+                column:
+                    name: communitie_user_id
+                    type: int
 
-    - title: GET posts
-      description: get post index
-      rel: self
-      href: /posts
-      method: GET
-      targetSchema:
-          type: object
-          properties:
-              page:
-                  $ref: '#/definitions/page'
-              posts:
-                  $ref: '#/definitions/posts'
+            user_id:
+                column:
+                    name: user_id
+                    type: int
+                    foreign_key:
+                        name: communitie_user_fk_user_id
+                        target_table: user
+                        target_column: user_id
+            
+            communitie_id:
+                column:
+                    name: communitie_id
+                    type: int
+                    foreign_key:
+                        name: communitie_user_fk_communitie_id
+                        target_table: community
+                        target_column: communitie_id
 
-    - title: GET post by post_id
-      description: get post_id post
-      rel: self
-      href: /posts/:post_id
-      method: GET
-      targetSchema:
-          type: object
-          properties:
-              post:
-                  $ref: '#/definitions/post'
+    communitie_user_entry_request:
+        type: object
+        table:
+            name: communitie_user_entry_requests
+            primary_key:
+                communitie_user_entry_request_pk_communitie_id_user_id:
+                    - communitie_id
+                    - user_id
+        properties:
+            user_id:
+                column:
+                    name: user_id
+                    type: int
+                    foreign_key:
+                        name: communitie_user_entry_request_fk_user_id
+                        target_table: user
+                        target_column: user_id
+            
+            communitie_id:
+                column:
+                    name: communitie_id
+                    type: int
+                    foreign_key:
+                        name: communitie_user_entry_request_fk_communitie_id
+                        target_table: community
+                        target_column: communitie_id
 
+    communitie_user_role:
+        type: object
+        table:
+            name: communitie_user_roles
+            primary_key:
+                communitie_user_role_pk_communitie_user_id:
+                    - communitie_user_id
+        properties:
+            communitie_user_id:
+                column:
+                    name: communitie_user_id
+                    type: int
+                    foreign_key:
+                        name: communitie_user_role_fk_communitie_user_id
+                        target_column: communitie_user_id
+                        target_table:  communitie_user
 
+    event:
+        type: object
+        table:
+            name: events
+            primary_key:
+                event_pk_event_id:
+                    - event_id
+        
+        properties:
+            event_id:
+                column:
+                    name: event_id
+                    not_null: true
+                    type: int
+
+            communitie_id: 
+                column:
+                    name: communitie_id
+                    type: int
+                    not_null: true
+                    foreign_key:
+                        name: event_fk_communitie_id
+                        target_table: community
+                        target_column: communitie_id
+    event_like:
+        type: object
+        title: event_like
+        table:
+            name: event_likes
+            primary_key:
+                event_like_pk_event_id:
+                    - event_id
+        
+        properties:
+            event_id:
+                column:
+                    name: event_id
+                    type: int
+                    not_null: true
+                    foreign_key:
+                        name: event_like_fk_event_id
+                        target_table: event
+                        target_column: event_id
+            
+            user_id:
+                column:
+                    name: user_id
+                    type: int
+                    not_null: true
+                    foreign_key:
+                        name: event_like_fk_user_id
+                        target_table: user
+                        target_column: user_id
+    event_user:
+        type: object
+        title: event_user
+        table:
+            name: event_entries
+            primary_key:
+                event_user_pk_event_id:
+                    - event_id
+            index:
+                event_user_pk_event_user_id:
+                    - event_user_id
+
+        properties:
+            event_id:
+                column:
+                    name: event_id
+                    type: int
+                    not_null: true
+                    foreign_key:
+                        name: event_user_fk_event_id
+                        target_table: event
+                        target_column: event_id
+
+            user_id:
+                column:
+                    name: user_id
+                    type: int
+                    not_null: true
+                    foreign_key:
+                        name: event_user_fk_user_id
+                        target_table: user
+                        target_column: user_id        
+            event_user_id:
+                column:
+                    name: event_user_id
+                    type: int
+
+    event_user_role:
+        type: object
+        table:
+            name: event_user_roles
+            primary_key:
+                event_user_role_pk_event_user_id:
+                    - event_user_id
+        properties:
+            event_user_id:
+                column:
+                    name: event_user_id
+                    type: int
+                    foreign_key:
+                        name: event_user_role_fk_event_user_id
+                        target_table:  event_user
+                        target_column: event_user_id
+
+    salt:
+        type: object
+        table:
+            name: salts
+            primary_key:
+                salt_pk_user_id:
+                    - user_id
+        
+        properties:
+            user_id:
+                column:
+                    name: user_id
+                    type: int
+                    not_null: true
+                    foreign_key:
+                        name: salt_fk_user_id
+                        target_table: user
+                        target_column: user_id
+            salt:
+                column:
+                    name: salt
+                    type: varchar(255)
+                    not_null: true
+
+    invitation:
+        type: object
+        table:
+            name: invitations
+            primary_key:
+                invitation_pk_user_id:
+                    - user_id
+                    - communitie_id
+        properties:
+            user_id:
+                column:
+                    name: user_id
+                    type: int
+                    foreign_key:
+                        name: invitation_fk_user_id
+                        target_table: user
+                        target_column: user_id
+            communitie_id:
+                column:
+                    name: communitie_id
+                    type: int
+                    foreign_key:
+                        name: invitation_fk_communitie_id
+                        target_table: community
+                        target_column: communitie_id
